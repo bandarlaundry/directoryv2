@@ -3,173 +3,189 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Laundry Directory — Cari Laundry & Cleaning Terdekat</title>
-  <meta name="description" content="Temukan laundry, cuci sepatu, home cleaning, cuci sofa, cuci karpet, dan berbagai jasa cleaning berdasarkan lokasi Anda.">
+  <title>Laundry Directory V2.0 — Directory & Map</title>
   
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="./css/style.css">
-
+  
   <style>
-    #map {
-      width: 100% !important;
-      height: 380px !important;
-      min-height: 320px !important;
-      background-color: #cbd5e1 !important;
-      z-index: 1;
+    :root {
+      --primary: #0284c7;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 12px;
     }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    
+    header { background: var(--surface); padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 1.2rem; color: var(--primary); }
+    
+    .btn { padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; text-decoration: none; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: #e2e8f0; color: var(--text); }
+    
+    /* Peta di atas dengan tinggi pasti */
+    #map { width: 100%; height: 380px; background: #cbd5e1; z-index: 1; }
+    
+    .container { max-width: 1000px; margin: 1rem auto; padding: 0 1rem; width: 100%; }
+    .controls { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .controls input { flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; }
+    
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .card { background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.5rem; }
+    .badge { background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; width: fit-content; }
+    
+    .pagination { display: flex; justify-content: center; gap: 0.3rem; margin: 1.5rem 0; }
+    .page-btn { padding: 0.4rem 0.8rem; border: 1px solid var(--border); background: white; border-radius: 4px; cursor: pointer; }
+    .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   </style>
 </head>
 <body>
 
-  <header class="app-header">
-    <div class="brand">
-      <h1><a href="./">Laundry Directory V2.0</a></h1>
-      <p>Temukan laundry & jasa cleaning terdekat.</p>
+  <header>
+    <div>
+      <h1>Laundry Directory V2.0</h1>
+      <small style="color:var(--text-muted);">Peta & Katalog Usaha</small>
     </div>
-    <div style="display:flex; gap:0.5rem;">
-      <a href="./auth/login.html" class="btn btn-secondary" style="font-size:0.8rem;">🔑 Login Owner</a>
-      <a href="./admin.html" class="btn btn-primary" style="font-size:0.8rem;">🛠️ Admin</a>
+    <div>
+      <button id="seed-btn" class="btn btn-secondary">🌱 Isi 15 Data Dummy</button>
     </div>
   </header>
 
-  <section class="controls-section">
-    <div class="search-wrapper">
-      <input type="text" id="search-input" class="search-input" placeholder="Cari laundry, cuci sepatu, home cleaning...">
-      <button id="btn-my-location" class="btn btn-primary">📍 Lokasi Saya</button>
+  <!-- Peta Utama di Atas -->
+  <div id="map"></div>
+
+  <main class="container">
+    <div class="controls">
+      <input type="text" id="search" placeholder="Cari laundry, cuci sepatu, kota...">
     </div>
-    
-    <div class="category-bar">
-      <button class="chip active" data-cat="Semua">Semua</button>
-      <button class="chip" data-cat="Laundry Kiloan">Laundry Kiloan</button>
-      <button class="chip" data-cat="Laundry Satuan">Laundry Satuan</button>
-      <button class="chip" data-cat="Laundry Express">Laundry Express</button>
-      <button class="chip" data-cat="Cuci Sepatu">Cuci Sepatu</button>
-      <button class="chip" data-cat="Cuci Sofa">Cuci Sofa</button>
-      <button class="chip" data-cat="Cuci Kasur">Cuci Kasur</button>
-      <button class="chip" data-cat="Cuci Karpet">Cuci Karpet</button>
-      <button class="chip" data-cat="Home Cleaning">Home Cleaning</button>
-      <button class="chip" data-cat="Office Cleaning">Office Cleaning</button>
-      <button class="chip" data-cat="Cleaning Service">Cleaning Service</button>
-      <button class="chip" data-cat="Car Wash">Car Wash</button>
-      <button class="chip" data-cat="Jasa Cleaning Lainnya">Lainnya</button>
+
+    <!-- Container Data -->
+    <div id="data-list" class="grid">
+      <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem;">
+        Memuat data usaha...
+      </div>
     </div>
-  </section>
 
-  <main class="main-container">
-    <section id="map"></section>
-
-    <section class="list-container-wrapper">
-      <div id="business-list" class="list-grid">
-        <div class="loading-state">Memuat data dari database...</div>
-      </div>
-
-      <div class="pagination-container" id="pagination-wrapper" style="display:none;">
-        <button class="page-btn" id="btn-first" title="Halaman Pertama">&lt;&lt;</button>
-        <button class="page-btn" id="btn-prev" title="Halaman Sebelumnya">&lt;</button>
-        <div id="page-numbers" style="display:flex; gap:0.3rem;"></div>
-        <button class="page-btn" id="btn-next" title="Halaman Berikutnya">&gt;</button>
-        <button class="page-btn" id="btn-last" title="Halaman Terakhir">&gt;&gt;</button>
-      </div>
-    </section>
+    <!-- Pagination -->
+    <div class="pagination" id="pagination" style="display: none;">
+      <button class="page-btn" id="p-first">&lt;&lt;</button>
+      <button class="page-btn" id="p-prev">&lt;</button>
+      <div id="p-numbers" style="display: flex; gap: 0.3rem;"></div>
+      <button class="page-btn" id="p-next">&gt;</button>
+      <button class="page-btn" id="p-last">&gt;&gt;</button>
+    </div>
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script type="module">
-    import { fetchActiveBusinesses, calculateDistance, getBasePath } from './js/business.js';
-    import { initMap, updateMapMarkers, setMapCenter } from './js/map.js';
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    let allBusinesses = [];
-    let filteredBusinesses = [];
-    let userLocation = null;
-    let currentCategory = "Semua";
+    // Konfigurasi Firebase Proyek Anda
+    const firebaseConfig = {
+      apiKey: "AIzaSyAY2JOM_GK_c8MIKOOROjG61XtC-VxF3Gc",
+      authDomain: "laundry-directory-1915d.firebaseapp.com",
+      projectId: "laundry-directory-1915d",
+      storageBucket: "laundry-directory-1915d.appspot.com",
+      messagingSenderId: "336437234560",
+      appId: "1:336437234560:web:69dc7cbb36704c9f614f65"
+    };
 
-    const ITEMS_PER_PAGE = 10;
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let map, markersGroup;
+    let rawData = [];
+    let filteredData = [];
     let currentPage = 1;
+    const PER_PAGE = 10;
 
-    document.addEventListener("DOMContentLoaded", async () => {
-      // 1. Inisialisasi Peta
-      try {
-        initMap("map");
-      } catch (err) {
-        console.error("Leaflet init error:", err);
-      }
+    // 1. Inisialisasi Peta
+    function initMap() {
+      map = L.map('map').setView([-6.4025, 106.9680], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+      markersGroup = L.layerGroup().addTo(map);
+      
+      setTimeout(() => map.invalidateSize(), 300);
+    }
 
-      setupEventListeners();
-      await loadData();
-    });
-
+    // 2. Fetch Data dari Firestore
     async function loadData() {
-      const listEl = document.getElementById("business-list");
       try {
-        allBusinesses = await fetchActiveBusinesses();
-        applyFilters();
+        const q = query(collection(db, "businesses"), where("status", "==", "active"));
+        const snap = await getDocs(q);
+        rawData = [];
+        snap.forEach(d => rawData.push({ id: d.id, ...d.data() }));
+        
+        applyFilter();
       } catch (err) {
-        console.error("Firebase fetch error:", err);
-        listEl.innerHTML = `
-          <div class="empty-state">
-            <p><strong>Gagal memuat data dari database.</strong></p>
-            <p><small>${err.message || 'Periksa aturan Firestore.'}</small></p>
-            <button class="btn btn-primary" onclick="location.reload()" style="margin-top:10px;">Coba Lagi</button>
+        console.error("Firestore Error:", err);
+        document.getElementById("data-list").innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; color: red; padding: 2rem;">
+            Gagal mengambil data dari Firestore. Pastikan Firestore Rules di Firebase Console sudah di-publish ke 'allow read, write: if true;'.
           </div>
         `;
       }
     }
 
-    function applyFilters() {
-      const kw = document.getElementById("search-input").value.toLowerCase().trim();
-      filteredBusinesses = allBusinesses.filter(b => {
-        const matchCat = currentCategory === "Semua" || b.category === currentCategory;
-        const target = `${b.name} ${b.category} ${b.address} ${b.city} ${b.province}`.toLowerCase();
-        return matchCat && (!kw || target.includes(kw));
-      });
+    // 3. Filter & Pagination
+    function applyFilter() {
+      const kw = document.getElementById("search").value.toLowerCase().trim();
+      filteredData = rawData.filter(d => 
+        `${d.name} ${d.category} ${d.city} ${d.address}`.toLowerCase().includes(kw)
+      );
 
       currentPage = 1;
-      updateMapMarkers(filteredBusinesses);
-      renderPaginatedList();
+      updateMapMarkers();
+      renderList();
     }
 
-    function renderPaginatedList() {
-      const listEl = document.getElementById("business-list");
-      listEl.innerHTML = "";
-      const basePath = getBasePath();
+    function updateMapMarkers() {
+      markersGroup.clearLayers();
+      const bounds = [];
 
-      if (filteredBusinesses.length === 0) {
-        listEl.innerHTML = `<div class="empty-state"><p>Tidak ada data usaha ditemukan.</p></div>`;
-        document.getElementById("pagination-wrapper").style.display = "none";
+      filteredData.forEach(d => {
+        if (d.latitude && d.longitude) {
+          bounds.push([d.latitude, d.longitude]);
+          const m = L.marker([d.latitude, d.longitude]);
+          m.bindPopup(`<b>${d.name}</b><br>${d.category}<br>📍 ${d.city}`);
+          markersGroup.addLayer(m);
+        }
+      });
+
+      if (bounds.length > 0) {
+        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+      }
+    }
+
+    function renderList() {
+      const listEl = document.getElementById("data-list");
+      listEl.innerHTML = "";
+
+      if (filteredData.length === 0) {
+        listEl.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:2rem;">Data tidak ditemukan. Klik tombol "Isi 15 Data Dummy" di atas jika database masih kosong.</div>`;
+        document.getElementById("pagination").style.display = "none";
         return;
       }
 
-      const totalPages = Math.ceil(filteredBusinesses.length / ITEMS_PER_PAGE);
-      if (currentPage > totalPages) currentPage = totalPages;
-      if (currentPage < 1) currentPage = 1;
+      const totalPages = Math.ceil(filteredData.length / PER_PAGE);
+      const start = (currentPage - 1) * PER_PAGE;
+      const pageItems = filteredData.slice(start, start + PER_PAGE);
 
-      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-      const currentItems = filteredBusinesses.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-      currentItems.forEach(b => {
-        let distText = "";
-        if (userLocation && b.latitude && b.longitude) {
-          distText = ` 📏 ${calculateDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude)} km`;
-        }
-
-        const detailUrl = `${basePath}/${b.categorySlug || 'laundry'}/${b.citySlug || 'lokasi'}/${b.slug}`;
-
-        let verifBadge = "";
-        if (b.verificationStatus === 'verified') {
-          verifBadge = ` <span class="badge" style="background:#dcfce7; color:#15803d; font-size:0.7rem;">✓ Verified</span>`;
-        }
-
+      pageItems.forEach(d => {
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <a href="${detailUrl}" class="card-title" style="text-decoration:none;">${b.name}</a>
-            <span class="badge">${b.category}</span>
-          </div>
-          <div class="card-info">📍 ${b.city || b.address || '-'} ${distText} ${verifBadge}</div>
-          <a href="${detailUrl}" class="btn btn-secondary" style="margin-top:0.4rem; font-size:0.75rem;">Lihat Detail & Map</a>
+          <span class="badge">${d.category}</span>
+          <strong style="font-size:1rem; color:var(--primary);">${d.name}</strong>
+          <small style="color:var(--text-muted);">📍 ${d.address}, ${d.city}</small>
+          <small>🕒 ${d.openingHours || '-'}</small>
         `;
         listEl.appendChild(card);
       });
@@ -178,47 +194,75 @@
     }
 
     function renderPaginationControls(totalPages) {
-      const wrapper = document.getElementById("pagination-wrapper");
-      const numbersContainer = document.getElementById("page-numbers");
-      
+      const pContainer = document.getElementById("pagination");
+      const numbersEl = document.getElementById("p-numbers");
+
       if (totalPages <= 1) {
-        wrapper.style.display = "none";
+        pContainer.style.display = "none";
         return;
       }
 
-      wrapper.style.display = "flex";
-      numbersContainer.innerHTML = "";
+      pContainer.style.display = "flex";
+      numbersEl.innerHTML = "";
 
       for (let i = 1; i <= totalPages; i++) {
-        const numBtn = document.createElement("button");
-        numBtn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
-        numBtn.innerText = i;
-        numBtn.onclick = () => { currentPage = i; renderPaginatedList(); };
-        numbersContainer.appendChild(numBtn);
+        const btn = document.createElement("button");
+        btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+        btn.innerText = i;
+        btn.onclick = () => { currentPage = i; renderList(); };
+        numbersEl.appendChild(btn);
       }
 
-      document.getElementById("btn-first").disabled = currentPage === 1;
-      document.getElementById("btn-prev").disabled = currentPage === 1;
-      document.getElementById("btn-next").disabled = currentPage === totalPages;
-      document.getElementById("btn-last").disabled = currentPage === totalPages;
+      document.getElementById("p-first").disabled = currentPage === 1;
+      document.getElementById("p-prev").disabled = currentPage === 1;
+      document.getElementById("p-next").disabled = currentPage === totalPages;
+      document.getElementById("p-last").disabled = currentPage === totalPages;
 
-      document.getElementById("btn-first").onclick = () => { currentPage = 1; renderPaginatedList(); };
-      document.getElementById("btn-prev").onclick = () => { if (currentPage > 1) { currentPage--; renderPaginatedList(); } };
-      document.getElementById("btn-next").onclick = () => { if (currentPage < totalPages) { currentPage++; renderPaginatedList(); } };
-      document.getElementById("btn-last").onclick = () => { currentPage = totalPages; renderPaginatedList(); };
+      document.getElementById("p-first").onclick = () => { currentPage = 1; renderList(); };
+      document.getElementById("p-prev").onclick = () => { if (currentPage > 1) { currentPage--; renderList(); } };
+      document.getElementById("p-next").onclick = () => { if (currentPage < totalPages) { currentPage++; renderList(); } };
+      document.getElementById("p-last").onclick = () => { currentPage = totalPages; renderList(); };
     }
 
-    function setupEventListeners() {
-      document.getElementById("search-input").addEventListener("input", applyFilters);
-      document.querySelectorAll(".chip").forEach(chip => {
-        chip.onclick = (e) => {
-          document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
-          e.target.classList.add("active");
-          currentCategory = e.target.dataset.cat;
-          applyFilters();
-        };
-      });
+    // 4. Seed Dummy Data
+    async function seedData() {
+      const dummy = [
+        { name: "Bandar Laundry", category: "Laundry Kiloan", address: "Jl. Raya Cileungsi No. 12", city: "Bogor", latitude: -6.4025, longitude: 106.9680, status: "active" },
+        { name: "Sneakers Clean Cibubur", category: "Cuci Sepatu", address: "Jl. Transyogi KM 3", city: "Depok", latitude: -6.3725, longitude: 106.9020, status: "active" },
+        { name: "Express Clean 24h", category: "Laundry Express", address: "Jl. Pajajaran No. 45", city: "Bogor", latitude: -6.5950, longitude: 106.8050, status: "active" },
+        { name: "Sofa Hygiene Solutions", category: "Cuci Sofa", address: "Jl. Margonda Raya No. 100", city: "Depok", latitude: -6.3900, longitude: 106.8300, status: "active" },
+        { name: "Glow Car Wash", category: "Car Wash", address: "Jl. Kartini No. 22", city: "Bekasi", latitude: -6.2400, longitude: 106.9900, status: "active" },
+        { name: "Home Clean Pro", category: "Home Cleaning", address: "Jl. Sudirman No. 88", city: "Jakarta Selatan", latitude: -6.2100, longitude: 106.8200, status: "active" },
+        { name: "Kasur Steril Nusantara", category: "Cuci Kasur", address: "Jl. Boulevard Barat", city: "Jakarta Utara", latitude: -6.1500, longitude: 106.8900, status: "active" },
+        { name: "Karpet Masjid Clean", category: "Cuci Karpet", address: "Jl. Pahlawan No. 15", city: "Bogor", latitude: -6.6000, longitude: 106.7900, status: "active" },
+        { name: "Royal Satuan Wash", category: "Laundry Satuan", address: "Jl. Kemang Raya No. 10", city: "Jakarta Selatan", latitude: -6.2600, longitude: 106.8150, status: "active" },
+        { name: "Office Shine Care", category: "Office Cleaning", address: "Jl. TB Simatupang No. 50", city: "Jakarta Selatan", latitude: -6.3000, longitude: 106.8400, status: "active" },
+        { name: "Cileungsi Hygiene", category: "Cleaning Service", address: "Jl. Narogong No. 8", city: "Bogor", latitude: -6.4100, longitude: 106.9500, status: "active" },
+        { name: "Kinclong Kiloan Fresh", category: "Laundry Kiloan", address: "Jl. Alternatif Cibubur", city: "Bekasi", latitude: -6.3800, longitude: 106.9200, status: "active" },
+        { name: "Hydro Clean Bed", category: "Cuci Sofa", address: "Jl. Akses UI No. 12", city: "Depok", latitude: -6.3500, longitude: 106.8400, status: "active" },
+        { name: "Auto Clean Steam Wash", category: "Car Wash", address: "Jl. Sholeh Iskandar No. 3", city: "Bogor", latitude: -6.5600, longitude: 106.7800, status: "active" },
+        { name: "Bersih Total Facility", category: "Jasa Cleaning Lainnya", address: "Jl. Ahmad Yani No. 88", city: "Bekasi", latitude: -6.2300, longitude: 106.9800, status: "active" }
+      ];
+
+      alert("Mengunggah 15 Data Dummy ke Firestore...");
+      for (const item of dummy) {
+        await addDoc(collection(db, "businesses"), {
+          ...item,
+          slug: item.name.toLowerCase().replace(/\s+/g, '-'),
+          openingHours: "08:00 - 20:00",
+          createdAt: serverTimestamp()
+        });
+      }
+      alert("Berhasil mengunggah data! Halaman akan direfresh.");
+      loadData();
     }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initMap();
+      loadData();
+      document.getElementById("search").addEventListener("input", applyFilter);
+      document.getElementById("seed-btn").onclick = seedData;
+    });
   </script>
 </body>
 </html>
