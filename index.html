@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laundry Directory — Cari Laundry & Cleaning Terdekat</title>
+  <meta name="description" content="Temukan laundry, cuci sepatu, home cleaning, cuci sofa, cuci karpet, dan berbagai jasa cleaning berdasarkan lokasi Anda.">
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="brand">
+      <h1><a href="./">Laundry Directory V2.0</a></h1>
+      <p>Temukan laundry & jasa cleaning terdekat.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+      <a href="./auth/login.html" class="btn btn-secondary" style="font-size:0.8rem;">🔑 Login Owner</a>
+      <a href="./admin.html" class="btn btn-primary" style="font-size:0.8rem;">🛠️ Admin</a>
+    </div>
+  </header>
+
+  <section class="controls-section">
+    <div class="search-wrapper">
+      <input type="text" id="search-input" class="search-input" placeholder="Cari laundry, cuci sepatu, home cleaning...">
+      <button id="btn-my-location" class="btn btn-primary">📍 Lokasi Saya</button>
+    </div>
+    
+    <div class="category-bar">
+      <button class="chip active" data-cat="Semua">Semua</button>
+      <button class="chip" data-cat="Laundry Kiloan">Laundry Kiloan</button>
+      <button class="chip" data-cat="Laundry Satuan">Laundry Satuan</button>
+      <button class="chip" data-cat="Laundry Express">Laundry Express</button>
+      <button class="chip" data-cat="Cuci Sepatu">Cuci Sepatu</button>
+      <button class="chip" data-cat="Cuci Sofa">Cuci Sofa</button>
+      <button class="chip" data-cat="Cuci Kasur">Cuci Kasur</button>
+      <button class="chip" data-cat="Cuci Karpet">Cuci Karpet</button>
+      <button class="chip" data-cat="Home Cleaning">Home Cleaning</button>
+      <button class="chip" data-cat="Office Cleaning">Office Cleaning</button>
+      <button class="chip" data-cat="Cleaning Service">Cleaning Service</button>
+      <button class="chip" data-cat="Car Wash">Car Wash</button>
+      <button class="chip" data-cat="Jasa Cleaning Lainnya">Lainnya</button>
+    </div>
+  </section>
+
+  <main class="main-container">
+    <!-- 1. PETA BERADA DI BAGIAN ATAS -->
+    <section id="map"></section>
+
+    <!-- 2. DATA USAHA BERADA DI BAGIAN BAWAH -->
+    <section class="list-container-wrapper">
+      <div id="business-list" class="list-grid">
+        <div class="loading-state">Memuat data dari database...</div>
+      </div>
+
+      <!-- 3. PAGINATION NAVIGATION CONTROLS -->
+      <div class="pagination-container" id="pagination-wrapper" style="display:none;">
+        <button class="page-btn" id="btn-first" title="Halaman Pertama">&lt;&lt;</button>
+        <button class="page-btn" id="btn-prev" title="Halaman Sebelumnya">&lt;</button>
+        
+        <div id="page-numbers" style="display:flex; gap:0.3rem;"></div>
+        
+        <button class="page-btn" id="btn-next" title="Halaman Berikutnya">&gt;</button>
+        <button class="page-btn" id="btn-last" title="Halaman Terakhir">&gt;&gt;</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script type="module">
+    import { fetchActiveBusinesses, calculateDistance, getBasePath } from './js/business.js';
+    import { initMap, updateMapMarkers, setMapCenter } from './js/map.js';
+
+    let allBusinesses = [];
+    let filteredBusinesses = [];
+    let userLocation = null;
+    let currentCategory = "Semua";
+
+    // Konfigurasi Pagination Dinamis
+    const ITEMS_PER_PAGE = 10;
+    let currentPage = 1;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Inisialisasi Peta
+      try {
+        initMap("map");
+      } catch (err) {
+        console.error("Gagal inisialisasi peta Leaflet:", err);
+      }
+
+      setupEventListeners();
+      await loadData();
+    });
+
+    async function loadData() {
+      const listEl = document.getElementById("business-list");
+      try {
+        allBusinesses = await fetchActiveBusinesses();
+        applyFilters();
+      } catch (err) {
+        console.error("Firebase fetch error:", err);
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <p><strong>Gagal memuat data dari database.</strong></p>
+            <button class="btn btn-primary" onclick="location.reload()" style="margin-top:10px;">Coba Lagi</button>
+          </div>
+        `;
+      }
+    }
+
+    function applyFilters() {
+      const kw = document.getElementById("search-input").value.toLowerCase().trim();
+      
+      // Filter berdasarkan Kategori dan Kata Kunci
+      filteredBusinesses = allBusinesses.filter(b => {
+        const matchCat = currentCategory === "Semua" || b.category === currentCategory;
+        const target = `${b.name} ${b.category}${b.address} ${b.city}${b.province}`.toLowerCase();
+        return matchCat && (!kw || target.includes(kw));
+      });
+
+      // Reset ke halaman 1 saat filter berubah
+      currentPage = 1;
+
+      // Update Marker di Peta berdasarkan hasil filter
+      updateMapMarkers(filteredBusinesses);
+
+      // Render List & Pagination
+      renderPaginatedList();
+    }
+
+    function renderPaginatedList() {
+      const listEl = document.getElementById("business-list");
+      listEl.innerHTML = "";
+      const basePath = getBasePath();
+
+      if (filteredBusinesses.length === 0) {
+        listEl.innerHTML = `<div class="empty-state"><p>Tidak ada data usaha ditemukan.</p></div>`;
+        document.getElementById("pagination-wrapper").style.display = "none";
+        return;
+      }
+
+      // Hitung Indeks Potongan Data 10 per Halaman
+      const totalPages = Math.ceil(filteredBusinesses.length / ITEMS_PER_PAGE);
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      const currentItems = filteredBusinesses.slice(startIndex, endIndex);
+
+      // Render Card Usaha
+      currentItems.forEach(b => {
+        let distText = "";
+        if (userLocation && b.latitude && b.longitude) {
+          distText = ` 📏 ${calculateDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude)} km`;
+        }
+
+        const detailUrl = `${basePath}/${b.categorySlug || 'laundry'}/${b.citySlug \vert{}\vert{} 'lokasi'}/${b.slug}`;
+
+        let verifBadge = "";
+        if (b.verificationStatus === 'verified') {
+          verifBadge = ` <span class="badge" style="background:#dcfce7; color:#15803d; font-size:0.7rem;">✓ Verified</span>`;
+        }
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <a href="${detailUrl}" class="card-title" style="text-decoration:none;">${b.name}</a>
+            <span class="badge">${b.category}</span>
+          </div>
+          <div class="card-info">📍 ${b.city || b.address || '-'} ${distText}${verifBadge}</div>
+          <a href="${detailUrl}" class="btn btn-secondary" style="margin-top:0.4rem; font-size:0.75rem;">Lihat Detail & Map</a>
+        `;
+        listEl.appendChild(card);
+      });
+
+      // Render Kontrol Navigasi Pagination
+      renderPaginationControls(totalPages);
+    }
+
+    function renderPaginationControls(totalPages) {
+      const wrapper = document.getElementById("pagination-wrapper");
+      const numbersContainer = document.getElementById("page-numbers");
+      
+      if (totalPages <= 1) {
+        wrapper.style.display = "none";
+        return;
+      }
+
+      wrapper.style.display = "flex";
+      numbersContainer.innerHTML = "";
+
+      // Render Tombol Angka Halaman
+      for (let i = 1; i <= totalPages; i++) {
+        const numBtn = document.createElement("button");
+        numBtn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+        numBtn.innerText = i;
+        numBtn.onclick = () => {
+          currentPage = i;
+          renderPaginatedList();
+          scrollToData();
+        };
+        numbersContainer.appendChild(numBtn);
+      }
+
+      // Update State Tombol Panah
+      const btnFirst = document.getElementById("btn-first");
+      const btnPrev = document.getElementById("btn-prev");
+      const btnNext = document.getElementById("btn-next");
+      const btnLast = document.getElementById("btn-last");
+
+      btnFirst.disabled = currentPage === 1;
+      btnPrev.disabled = currentPage === 1;
+      btnNext.disabled = currentPage === totalPages;
+      btnLast.disabled = currentPage === totalPages;
+
+      btnFirst.onclick = () => { currentPage = 1; renderPaginatedList(); scrollToData(); };
+      btnPrev.onclick = () => { if (currentPage > 1) { currentPage--; renderPaginatedList(); scrollToData(); } };
+      btnNext.onclick = () => { if (currentPage < totalPages) { currentPage++; renderPaginatedList(); scrollToData(); } };
+      btnLast.onclick = () => { currentPage = totalPages; renderPaginatedList(); scrollToData(); };
+    }
+
+    function scrollToData() {
+      document.querySelector(".list-container-wrapper").scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function setupEventListeners() {
+      document.getElementById("search-input").addEventListener("input", applyFilters);
+
+      document.querySelectorAll(".chip").forEach(chip => {
+        chip.onclick = (e) => {
+          document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+          e.target.classList.add("active");
+          currentCategory = e.target.dataset.cat;
+          applyFilters();
+        };
+      });
+
+      document.getElementById("btn-my-location").onclick = () => {
+        if (!navigator.geolocation) {
+          alert("Browser Anda tidak mendukung fitur Geolocation.");
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setMapCenter(userLocation.lat, userLocation.lng, 14);
+            applyFilters();
+          },
+          () => alert("Akses lokasi ditolak atau tidak dapat ditemukan.")
+        );
+      };
+    }
+  </script>
+</body>
+</html>
