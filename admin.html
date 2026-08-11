@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — Laundry Directory V2.0</title>
+  <style>
+    :root { --primary: #0284c7; --bg: #f8fafc; --text: #0f172a; --border: #e2e8f0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; }
+    header { background: white; padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 1.2rem; color: var(--primary); }
+    .container { max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem; }
+    .btn { padding: 0.4rem 0.8rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 0.8rem; text-decoration: none; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-success { background: #16a34a; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-secondary { background: #e2e8f0; color: var(--text); }
+    
+    .section-box { background: white; padding: 1.2rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1.5rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; }
+    th, td { padding: 0.6rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+    th { background: #f1f5f9; }
+    .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+    .badge-pending { background: #fef3c7; color: #b45309; }
+    .badge-active { background: #dcfce7; color: #15803d; }
+    .badge-draft { background: #f1f5f9; color: #475569; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Laundry Directory Admin Panel</h1>
+    <div>
+      <span id="admin-info" style="font-size:0.85rem; margin-right:10px;"></span>
+      <a href="./" class="btn btn-secondary">🌐 Ke Utama</a>
+      <button id="logout-btn" class="btn btn-danger">Logout</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- MODERASI USER / OWNER -->
+    <section class="section-box">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>Manajemen User / Owner</h2>
+        <button id="add-user-btn" class="btn btn-primary">+ Tambah User Manual</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Nama Owner</th>
+            <th>Email</th>
+            <th>WhatsApp</th>
+            <th>Status Approval</th>
+            <th>Aksi Admin</th>
+          </tr>
+        </thead>
+        <tbody id="user-table-body">
+          <tr><td colspan="5">Memuat data user...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- MODERASI USAHA (DRAFT, PENDING, ACTIVE, INACTIVE) -->
+    <section class="section-box">
+      <h2>Moderasi Usaha & Listing</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Nama Usaha</th>
+            <th>Kategori & Kota</th>
+            <th>Status Usaha</th>
+            <th>Aksi Admin</th>
+          </tr>
+        </thead>
+        <tbody id="business-table-body">
+          <tr><td colspan="4">Memuat data usaha...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAY2JOM_GK_c8MIKOOROjG61XtC-VxF3Gc",
+      authDomain: "laundry-directory-1915d.firebaseapp.com",
+      projectId: "laundry-directory-1915d",
+      storageBucket: "laundry-directory-1915d.appspot.com",
+      messagingSenderId: "336437234560",
+      appId: "1:336437234560:web:69dc7cbb36704c9f614f65"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Guard Halaman Admin
+    onAuthStateChanged(auth, async (user) => {
+      if (!user || user.email !== "bandardeterjen@gmail.com") {
+        alert("Akses Ditolak! Halaman ini khusus Super Admin bandardeterjen@gmail.com.");
+        window.location.href = "./auth.html";
+        return;
+      }
+
+      document.getElementById("admin-info").innerText = `Admin: ${user.email}`;
+      loadUsers();
+      loadBusinesses();
+    });
+
+    document.getElementById("logout-btn").onclick = () => signOut(auth).then(() => window.location.href = "./auth.html");
+
+    // 1. MANAJEMEN USER / OWNER
+    async function loadUsers() {
+      const snap = await getDocs(collection(db, "users"));
+      const tbody = document.getElementById("user-table-body");
+      tbody.innerHTML = "";
+
+      snap.forEach(d => {
+        const u = { id: d.id, ...d.data() };
+        if (u.role === 'admin') return; // Skip Super Admin
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${u.name || '-'}</strong></td>
+          <td>${u.email}</td>
+          <td>${u.phone || '-'}</td>
+          <td><span class="badge ${u.status === 'approved' ? 'badge-active' : 'badge-pending'}">${u.status || 'pending'}</span></td>
+          <td>
+            ${u.status !== 'approved' ? `<button class="btn btn-success" id="app-u-${u.id}">Approve</button>` : ''}
+            <button class="btn btn-danger" id="del-u-${u.id}">Hapus</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+
+        setTimeout(() => {
+          if (document.getElementById(`app-u-${u.id}`)) {
+            document.getElementById(`app-u-${u.id}`).onclick = async () => {
+              await updateDoc(doc(db, "users", u.id), { status: "approved" });
+              alert(`User ${u.email} berhasil disetujui/approved!`);
+              loadUsers();
+            };
+          }
+          document.getElementById(`del-u-${u.id}`).onclick = async () => {
+            if (confirm("Hapus user ini?")) {
+              await deleteDoc(doc(db, "users", u.id));
+              loadUsers();
+            }
+          };
+        }, 0);
+      });
+    }
+
+    // Tambah User Manual Oleh Admin (Otomatis Status = Approved)
+    document.getElementById("add-user-btn").onclick = async () => {
+      const name = prompt("Masukkan Nama Owner:");
+      const email = prompt("Masukkan Email Owner:");
+      const phone = prompt("Masukkan No WhatsApp:");
+      const password = prompt("Masukkan Password (Min 6 karakter):");
+
+      if (email && password) {
+        try {
+          const cred = await createUserWithEmailAndPassword(auth, email, password);
+          await setDoc(doc(db, "users", cred.user.uid), {
+            uid: cred.user.uid,
+            name, email, phone,
+            role: "owner",
+            status: "approved", // Otomatis disetujui jika dibuat admin
+            createdAt: serverTimestamp()
+          });
+          alert("User Owner Baru Berhasil Ditambahkan dan Langsung Status Approved!");
+          loadUsers();
+        } catch (err) { alert("Error: " + err.message); }
+      }
+    };
+
+    // 2. MANAJEMEN USAHA (STATUS: ACTIVE, PENDING, DRAFT, INACTIVE)
+    async function loadBusinesses() {
+      const snap = await getDocs(collection(db, "businesses"));
+      const tbody = document.getElementById("business-table-body");
+      tbody.innerHTML = "";
+
+      snap.forEach(d => {
+        const b = { id: d.id, ...d.data() };
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>${b.name}</strong></td>
+          <td>${b.category} (${b.city})</td>
+          <td>
+            <select id="status-sel-${b.id}" style="padding:4px; border-radius:4px;">
+              <option value="active" ${b.status === 'active' ? 'selected' : ''}>Active (Publik)</option>
+              <option value="pending" ${b.status === 'pending' ? 'selected' : ''}>Pending (Review)</option>
+              <option value="draft" ${b.status === 'draft' ? 'selected' : ''}>Draft</option>
+              <option value="inactive" ${b.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+            </select>
+          </td>
+          <td>
+            <button class="btn btn-primary" id="save-b-${b.id}">Simpan Status</button>
+            <button class="btn btn-danger" id="del-b-${b.id}">Hapus</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+
+        setTimeout(() => {
+          document.getElementById(`save-b-${b.id}`).onclick = async () => {
+            const newStatus = document.getElementById(`status-sel-${b.id}`).value;
+            await updateDoc(doc(db, "businesses", b.id), { status: newStatus });
+            alert(`Status usaha ${b.name} diubah menjadi ${newStatus}!`);
+            loadBusinesses();
+          };
+
+          document.getElementById(`del-b-${b.id}`).onclick = async () => {
+            if (confirm(`Hapus permanen usaha ${b.name}?`)) {
+              await deleteDoc(doc(db, "businesses", b.id));
+              loadBusinesses();
+            }
+          };
+        }, 0);
+      });
+    }
+  </script>
+</body>
+</html>
