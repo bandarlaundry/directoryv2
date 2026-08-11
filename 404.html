@@ -24,7 +24,7 @@
       <h1><a href="/repositoryv2/">Laundry Directory V2.0</a></h1>
       <p>Halaman Detail Resmi Usaha</p>
     </div>
-    <a href="/repositoryv2/" class="btn btn-secondary">← Kembali ke Peta</a>
+    <a href="/" class="btn btn-secondary">← Kembali ke Peta</a>
   </header>
 
   <main class="detail-container">
@@ -35,7 +35,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
-    import { fetchBusinessBySlug } from '/repositoryv2/js/business.js';
+    import { fetchBusinessBySlug } from './js/business.js';
 
     document.addEventListener("DOMContentLoaded", async () => {
       const pathSegments = window.location.pathname.split('/').filter(Boolean);
@@ -118,7 +118,7 @@
         <div class="empty-state">
           <h2>Usaha Tidak Ditemukan</h2>
           <p>${msg}</p>
-          <a href="/repositoryv2/" class="btn btn-primary" style="margin-top:1rem;">Kembali ke Utama</a>
+          <a href="/" class="btn btn-primary" style="margin-top:1rem;">Kembali ke Utama</a>
         </div>
       `;
     }
