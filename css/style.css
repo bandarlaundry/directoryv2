@@ -1,0 +1,130 @@
+:root {
+  --primary: #0284c7;
+  --primary-hover: #0369a1;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --whatsapp: #16a34a;
+  --radius: 12px;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+/* Header & Controls */
+.app-header { background: var(--surface); padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.brand h1 a { color: var(--primary); text-decoration: none; font-size: 1.25rem; font-weight: 700; }
+.brand p { font-size: 0.85rem; color: var(--text-muted); }
+
+.controls-section { padding: 1rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.75rem; }
+.search-wrapper { display: flex; gap: 0.5rem; }
+.search-input { flex: 1; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); outline: none; font-size: 0.9rem; }
+.search-input:focus { border-color: var(--primary); }
+
+.btn { padding: 0.65rem 1rem; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; font-size: 0.875rem; text-decoration: none; transition: 0.2s; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-whatsapp { background: var(--whatsapp); color: white; }
+.btn-secondary { background: #e2e8f0; color: var(--text); }
+.btn-secondary:hover { background: #cbd5e1; }
+.btn-danger { background: #ef4444; color: white; }
+
+.category-bar { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; scrollbar-width: none; }
+.category-bar::-webkit-scrollbar { display: none; }
+.chip { padding: 0.4rem 0.85rem; background: #f1f5f9; border: 1px solid var(--border); border-radius: 999px; font-size: 0.8rem; white-space: nowrap; cursor: pointer; color: var(--text-muted); text-decoration: none; }
+.chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+/* Layout Halaman Utama: PETA DI ATAS, DATA DI BAWAH */
+.main-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+#map {
+  width: 100%;
+  height: 400px; /* Peta tampil penuh di atas */
+  min-height: 350px;
+  background-color: #cbd5e1;
+  z-index: 1;
+  border-bottom: 1px solid var(--border);
+}
+
+.list-container-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 1.5rem 1rem;
+}
+
+.list-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .list-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .list-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Business Cards */
+.card { background: var(--surface); border-radius: var(--radius); padding: 1rem; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 0.5rem; transition: 0.2s; }
+.card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.card-title { font-size: 1rem; font-weight: 600; color: var(--text); }
+.badge { background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; width: fit-content; }
+.card-info { font-size: 0.85rem; color: var(--text-muted); }
+
+/* Pagination Navigation Styles */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 2rem;
+  padding: 1rem 0;
+}
+
+.page-btn {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.page-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Detail Modal / Toast */
+.detail-container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; width: 100%; }
+.detail-card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+.detail-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
+#detail-map { height: 280px; width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+.toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 0.75rem 1.25rem; border-radius: 999px; font-size: 0.85rem; z-index: 3000; display: none; }
+.empty-state, .loading-state { text-align: center; padding: 2rem; color: var(--text-muted); width: 100%; grid-column: 1 / -1; }
