@@ -6,8 +6,19 @@
   <title>Laundry Directory — Cari Laundry & Cleaning Terdekat</title>
   <meta name="description" content="Temukan laundry, cuci sepatu, home cleaning, cuci sofa, cuci karpet, dan berbagai jasa cleaning berdasarkan lokasi Anda.">
   
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="./css/style.css">
+
+  <style>
+    #map {
+      width: 100% !important;
+      height: 380px !important;
+      min-height: 320px !important;
+      background-color: #cbd5e1 !important;
+      z-index: 1;
+    }
+  </style>
 </head>
 <body>
 
@@ -46,29 +57,22 @@
   </section>
 
   <main class="main-container">
-    <!-- 1. PETA BERADA DI BAGIAN ATAS -->
     <section id="map"></section>
 
-    <!-- 2. DATA USAHA BERADA DI BAGIAN BAWAH -->
     <section class="list-container-wrapper">
       <div id="business-list" class="list-grid">
         <div class="loading-state">Memuat data dari database...</div>
       </div>
 
-      <!-- 3. PAGINATION NAVIGATION CONTROLS -->
       <div class="pagination-container" id="pagination-wrapper" style="display:none;">
         <button class="page-btn" id="btn-first" title="Halaman Pertama">&lt;&lt;</button>
         <button class="page-btn" id="btn-prev" title="Halaman Sebelumnya">&lt;</button>
-        
         <div id="page-numbers" style="display:flex; gap:0.3rem;"></div>
-        
         <button class="page-btn" id="btn-next" title="Halaman Berikutnya">&gt;</button>
         <button class="page-btn" id="btn-last" title="Halaman Terakhir">&gt;&gt;</button>
       </div>
     </section>
   </main>
-
-  <div class="toast" id="toast"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -81,16 +85,15 @@
     let userLocation = null;
     let currentCategory = "Semua";
 
-    // Konfigurasi Pagination Dinamis
     const ITEMS_PER_PAGE = 10;
     let currentPage = 1;
 
     document.addEventListener("DOMContentLoaded", async () => {
-      // Inisialisasi Peta
+      // 1. Inisialisasi Peta
       try {
         initMap("map");
       } catch (err) {
-        console.error("Gagal inisialisasi peta Leaflet:", err);
+        console.error("Leaflet init error:", err);
       }
 
       setupEventListeners();
@@ -107,6 +110,7 @@
         listEl.innerHTML = `
           <div class="empty-state">
             <p><strong>Gagal memuat data dari database.</strong></p>
+            <p><small>${err.message || 'Periksa aturan Firestore.'}</small></p>
             <button class="btn btn-primary" onclick="location.reload()" style="margin-top:10px;">Coba Lagi</button>
           </div>
         `;
@@ -115,21 +119,14 @@
 
     function applyFilters() {
       const kw = document.getElementById("search-input").value.toLowerCase().trim();
-      
-      // Filter berdasarkan Kategori dan Kata Kunci
       filteredBusinesses = allBusinesses.filter(b => {
         const matchCat = currentCategory === "Semua" || b.category === currentCategory;
-        const target = `${b.name} ${b.category}${b.address} ${b.city}${b.province}`.toLowerCase();
+        const target = `${b.name} ${b.category} ${b.address} ${b.city} ${b.province}`.toLowerCase();
         return matchCat && (!kw || target.includes(kw));
       });
 
-      // Reset ke halaman 1 saat filter berubah
       currentPage = 1;
-
-      // Update Marker di Peta berdasarkan hasil filter
       updateMapMarkers(filteredBusinesses);
-
-      // Render List & Pagination
       renderPaginatedList();
     }
 
@@ -144,23 +141,20 @@
         return;
       }
 
-      // Hitung Indeks Potongan Data 10 per Halaman
       const totalPages = Math.ceil(filteredBusinesses.length / ITEMS_PER_PAGE);
       if (currentPage > totalPages) currentPage = totalPages;
       if (currentPage < 1) currentPage = 1;
 
       const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-      const endIndex = startIndex + ITEMS_PER_PAGE;
-      const currentItems = filteredBusinesses.slice(startIndex, endIndex);
+      const currentItems = filteredBusinesses.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-      // Render Card Usaha
       currentItems.forEach(b => {
         let distText = "";
         if (userLocation && b.latitude && b.longitude) {
           distText = ` 📏 ${calculateDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude)} km`;
         }
 
-        const detailUrl = `${basePath}/${b.categorySlug || 'laundry'}/${b.citySlug \vert{}\vert{} 'lokasi'}/${b.slug}`;
+        const detailUrl = `${basePath}/${b.categorySlug || 'laundry'}/${b.citySlug || 'lokasi'}/${b.slug}`;
 
         let verifBadge = "";
         if (b.verificationStatus === 'verified') {
@@ -174,13 +168,12 @@
             <a href="${detailUrl}" class="card-title" style="text-decoration:none;">${b.name}</a>
             <span class="badge">${b.category}</span>
           </div>
-          <div class="card-info">📍 ${b.city || b.address || '-'} ${distText}${verifBadge}</div>
+          <div class="card-info">📍 ${b.city || b.address || '-'} ${distText} ${verifBadge}</div>
           <a href="${detailUrl}" class="btn btn-secondary" style="margin-top:0.4rem; font-size:0.75rem;">Lihat Detail & Map</a>
         `;
         listEl.appendChild(card);
       });
 
-      // Render Kontrol Navigasi Pagination
       renderPaginationControls(totalPages);
     }
 
@@ -196,43 +189,27 @@
       wrapper.style.display = "flex";
       numbersContainer.innerHTML = "";
 
-      // Render Tombol Angka Halaman
       for (let i = 1; i <= totalPages; i++) {
         const numBtn = document.createElement("button");
         numBtn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
         numBtn.innerText = i;
-        numBtn.onclick = () => {
-          currentPage = i;
-          renderPaginatedList();
-          scrollToData();
-        };
+        numBtn.onclick = () => { currentPage = i; renderPaginatedList(); };
         numbersContainer.appendChild(numBtn);
       }
 
-      // Update State Tombol Panah
-      const btnFirst = document.getElementById("btn-first");
-      const btnPrev = document.getElementById("btn-prev");
-      const btnNext = document.getElementById("btn-next");
-      const btnLast = document.getElementById("btn-last");
+      document.getElementById("btn-first").disabled = currentPage === 1;
+      document.getElementById("btn-prev").disabled = currentPage === 1;
+      document.getElementById("btn-next").disabled = currentPage === totalPages;
+      document.getElementById("btn-last").disabled = currentPage === totalPages;
 
-      btnFirst.disabled = currentPage === 1;
-      btnPrev.disabled = currentPage === 1;
-      btnNext.disabled = currentPage === totalPages;
-      btnLast.disabled = currentPage === totalPages;
-
-      btnFirst.onclick = () => { currentPage = 1; renderPaginatedList(); scrollToData(); };
-      btnPrev.onclick = () => { if (currentPage > 1) { currentPage--; renderPaginatedList(); scrollToData(); } };
-      btnNext.onclick = () => { if (currentPage < totalPages) { currentPage++; renderPaginatedList(); scrollToData(); } };
-      btnLast.onclick = () => { currentPage = totalPages; renderPaginatedList(); scrollToData(); };
-    }
-
-    function scrollToData() {
-      document.querySelector(".list-container-wrapper").scrollIntoView({ behavior: 'smooth' });
+      document.getElementById("btn-first").onclick = () => { currentPage = 1; renderPaginatedList(); };
+      document.getElementById("btn-prev").onclick = () => { if (currentPage > 1) { currentPage--; renderPaginatedList(); } };
+      document.getElementById("btn-next").onclick = () => { if (currentPage < totalPages) { currentPage++; renderPaginatedList(); } };
+      document.getElementById("btn-last").onclick = () => { currentPage = totalPages; renderPaginatedList(); };
     }
 
     function setupEventListeners() {
       document.getElementById("search-input").addEventListener("input", applyFilters);
-
       document.querySelectorAll(".chip").forEach(chip => {
         chip.onclick = (e) => {
           document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
@@ -241,21 +218,6 @@
           applyFilters();
         };
       });
-
-      document.getElementById("btn-my-location").onclick = () => {
-        if (!navigator.geolocation) {
-          alert("Browser Anda tidak mendukung fitur Geolocation.");
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            setMapCenter(userLocation.lat, userLocation.lng, 14);
-            applyFilters();
-          },
-          () => alert("Akses lokasi ditolak atau tidak dapat ditemukan.")
-        );
-      };
     }
   </script>
 </body>
