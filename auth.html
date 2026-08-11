@@ -20,6 +20,27 @@
     .form-group input { padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; }
     .btn { padding: 0.7rem; border: none; border-radius: 6px; background: var(--primary); color: white; font-weight: 600; cursor: pointer; width: 100%; margin-top: 0.5rem; }
     .captcha-box { background: #f1f5f9; padding: 0.6rem; border-radius: 6px; border: 1px dashed #cbd5e1; margin-bottom: 0.8rem; font-size: 0.9rem; }
+
+    /* TOAST NOTIFICATION STYLING */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      z-index: 3000;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      text-align: center;
+      max-width: 90%;
+    }
+    .toast.error { background: #ef4444; }
+    .toast.success { background: #16a34a; }
   </style>
 </head>
 <body>
@@ -41,7 +62,7 @@
       <button type="submit" class="btn">Masuk (Login)</button>
     </form>
 
-    <!-- FORM REGISTRASI WITH CAPTCHA -->
+    <!-- FORM REGISTRASI -->
     <form id="register-form" style="display: none;">
       <div class="form-group"><label>Nama Lengkap Owner</label><input type="text" id="reg-name" required></div>
       <div class="form-group"><label>Email</label><input type="email" id="reg-email" required></div>
@@ -57,6 +78,8 @@
       <button type="submit" class="btn">Daftar Akun Owner</button>
     </form>
   </main>
+
+  <div class="toast" id="toast"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -76,8 +99,16 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Dynamic Captcha State
     let num1 = 0, num2 = 0, captchaResult = 0;
+
+    // Toast UI
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById("toast");
+      toast.innerText = msg;
+      toast.className = `toast ${isError ? 'error' : 'success'}`;
+      toast.style.display = "block";
+      setTimeout(() => { toast.style.display = "none"; }, 3500);
+    }
 
     function generateCaptcha() {
       num1 = Math.floor(Math.random() * 10) + 1;
@@ -88,13 +119,12 @@
         captchaResult = num1 + num2;
         document.getElementById("captcha-label").innerText = `Verifikasi Keamanan: ${num1} + ${num2} = ?`;
       } else {
-        if (num1 < num2) [num1, num2] = [num2, num1]; // Pastikan tidak minus
+        if (num1 < num2) [num1, num2] = [num2, num1];
         captchaResult = num1 - num2;
         document.getElementById("captcha-label").innerText = `Verifikasi Keamanan: ${num1} - ${num2} = ?`;
       }
     }
 
-    // Tab Switcher
     const tabLogin = document.getElementById("tab-login");
     const tabRegister = document.getElementById("tab-register");
     const formLogin = document.getElementById("login-form");
@@ -110,56 +140,49 @@
       generateCaptcha();
     };
 
-    // Handler Login (Terperbaiki dari Error userData is not defined)
-formLogin.onsubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const email = document.getElementById("login-email").value.trim();
-    const pwd = document.getElementById("login-password").value;
+    // Handler Login
+    formLogin.onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const email = document.getElementById("login-email").value.trim();
+        const pwd = document.getElementById("login-password").value;
 
-    // 1. Authenticate dengan Firebase Auth
-    const cred = await signInWithEmailAndPassword(auth, email, pwd);
-    
-    // 2. Ambil dokumen user dari Firestore
-    const userDoc = await getDoc(doc(db, "users", cred.user.uid));
-    let userData = null;
+        const cred = await signInWithEmailAndPassword(auth, email, pwd);
+        const userDoc = await getDoc(doc(db, "users", cred.user.uid));
 
-    if (userDoc.exists()) {
-      userData = userDoc.data();
-    } else {
-      // PERLINDUNGAN: Jika dokumen di Firestore terhapus, buat ulang dokumen dasar secara otomatis
-      const isAdmin = cred.user.email === "bandardeterjen@gmail.com";
-      userData = {
-        uid: cred.user.uid,
-        email: cred.user.email,
-        name: isAdmin ? "Super Admin" : "Owner",
-        role: isAdmin ? "admin" : "owner",
-        status: "approved"
-      };
-      // Simpan kembali dokumen user yang hilang
-      await setDoc(doc(db, "users", cred.user.uid), userData);
-    }
+        let userData = null;
 
-    // 3. Cek Status Approval (Kecuali Admin)
-    if (userData.role !== 'admin' && userData.status !== 'approved') {
-      await signOut(auth); // Keluarkan paksa
-      alert("⚠️ Akun Anda masih menunggu persetujuan (approval) dari Admin.");
-      return;
-    }
+        if (userDoc.exists()) {
+          userData = userDoc.data();
+        } else {
+          // Pemulihan otomatis jika dokumen terhapus
+          const isAdmin = cred.user.email === "bandardeterjen@gmail.com";
+          userData = {
+            uid: cred.user.uid,
+            email: cred.user.email,
+            name: isAdmin ? "Super Admin" : "Owner",
+            role: isAdmin ? "admin" : "owner",
+            status: "approved"
+          };
+          await setDoc(doc(db, "users", cred.user.uid), userData);
+        }
 
-    alert("Login Berhasil!");
-    
-    // 4. Pengalihan Halaman Berdasarkan Role
-    if (userData.role === 'admin') {
-      window.location.href = "./admin.html";
-    } else {
-      window.location.href = "./index.html";
-    }
+        // Cek Approval User
+        if (userData.role !== 'admin' && userData.status !== 'approved') {
+          await signOut(auth);
+          showToast("⚠️ Akun Anda masih menunggu persetujuan dari Admin.", true);
+          return;
+        }
 
-  } catch (err) { 
-    alert("Gagal Login: " + err.message); 
-  }
-};
+        showToast("Login Berhasil! Mengalihkan...", false);
+        setTimeout(() => {
+          window.location.href = userData?.role === 'admin' ? "./admin.html" : "./";
+        }, 1200);
+
+      } catch (err) { 
+        showToast("Gagal Login: " + err.message, true); 
+      }
+    };
 
     // Handler Register
     formRegister.onsubmit = async (e) => {
@@ -167,7 +190,7 @@ formLogin.onsubmit = async (e) => {
       const userAnswer = parseInt(document.getElementById("captcha-answer").value);
 
       if (userAnswer !== captchaResult) {
-        alert("Jawaban captcha salah! Silakan coba lagi.");
+        showToast("Jawaban captcha salah!", true);
         generateCaptcha();
         document.getElementById("captcha-answer").value = "";
         return;
@@ -178,7 +201,6 @@ formLogin.onsubmit = async (e) => {
         const pwd = document.getElementById("reg-password").value;
         const cred = await createUserWithEmailAndPassword(auth, email, pwd);
 
-        // Status awal User Registrasi Otomatis = 'pending'
         await setDoc(doc(db, "users", cred.user.uid), {
           uid: cred.user.uid,
           name: document.getElementById("reg-name").value,
@@ -189,11 +211,14 @@ formLogin.onsubmit = async (e) => {
           createdAt: serverTimestamp()
         });
 
-        await signOut(auth); // Keluarkan agar tidak langsung masuk sebelum di-approve
-        alert("Registrasi Berhasil! Akun Anda telah terdaftar dan sedang menunggu konfirmasi/approval Admin.");
-        window.location.href = "./auth.html";
+        await signOut(auth);
+        showToast("Registrasi Berhasil! Akun menunggu persetujuan Admin.", false);
+        setTimeout(() => {
+          tabLogin.click();
+        }, 2000);
+
       } catch (err) { 
-        alert("Gagal Registrasi: " + err.message); 
+        showToast("Gagal Registrasi: " + err.message, true); 
         generateCaptcha();
       }
     };
