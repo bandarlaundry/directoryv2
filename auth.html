@@ -110,31 +110,56 @@
       generateCaptcha();
     };
 
-    // Handler Login
-    formLogin.onsubmit = async (e) => {
-      e.preventDefault();
-      try {
-        const email = document.getElementById("login-email").value.trim();
-        const pwd = document.getElementById("login-password").value;
+    // Handler Login (Terperbaiki dari Error userData is not defined)
+formLogin.onsubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const email = document.getElementById("login-email").value.trim();
+    const pwd = document.getElementById("login-password").value;
 
-        const cred = await signInWithEmailAndPassword(auth, email, pwd);
-        const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+    // 1. Authenticate dengan Firebase Auth
+    const cred = await signInWithEmailAndPassword(auth, email, pwd);
+    
+    // 2. Ambil dokumen user dari Firestore
+    const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+    let userData = null;
 
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          
-          // Cek Approval User (Kecuali Admin)
-          if (userData.role !== 'admin' && userData.status !== 'approved') {
-            await signOut(auth); // Keluarkan paksa
-            alert("⚠️ Akun Anda masih menunggu persetujuan (approval) dari Admin. Silakan hubungi bandardeterjen@gmail.com.");
-            return;
-          }
-        }
+    if (userDoc.exists()) {
+      userData = userDoc.data();
+    } else {
+      // PERLINDUNGAN: Jika dokumen di Firestore terhapus, buat ulang dokumen dasar secara otomatis
+      const isAdmin = cred.user.email === "bandardeterjen@gmail.com";
+      userData = {
+        uid: cred.user.uid,
+        email: cred.user.email,
+        name: isAdmin ? "Super Admin" : "Owner",
+        role: isAdmin ? "admin" : "owner",
+        status: "approved"
+      };
+      // Simpan kembali dokumen user yang hilang
+      await setDoc(doc(db, "users", cred.user.uid), userData);
+    }
 
-        alert("Login Berhasil!");
-        window.location.href = userData?.role === 'admin' ? "./admin.html" : "./";
-      } catch (err) { alert("Gagal Login: " + err.message); }
-    };
+    // 3. Cek Status Approval (Kecuali Admin)
+    if (userData.role !== 'admin' && userData.status !== 'approved') {
+      await signOut(auth); // Keluarkan paksa
+      alert("⚠️ Akun Anda masih menunggu persetujuan (approval) dari Admin.");
+      return;
+    }
+
+    alert("Login Berhasil!");
+    
+    // 4. Pengalihan Halaman Berdasarkan Role
+    if (userData.role === 'admin') {
+      window.location.href = "./admin.html";
+    } else {
+      window.location.href = "./index.html";
+    }
+
+  } catch (err) { 
+    alert("Gagal Login: " + err.message); 
+  }
+};
 
     // Handler Register
     formRegister.onsubmit = async (e) => {
