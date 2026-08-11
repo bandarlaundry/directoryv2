@@ -1,7 +1,7 @@
 import { db } from './firebase-config.js';
 import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Dapatkan base path repositori secara dinamis
+// Dapatkan Base Path Repositori GitHub Pages secara dinamis
 export function getBasePath() {
   const path = window.location.pathname;
   if (path.startsWith('/directoryv2')) {
