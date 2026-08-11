@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Laundry Directory V2.0 — Directory & Map</title>
 
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <style>
@@ -27,6 +28,7 @@
     .btn-secondary { background: #e2e8f0; color: var(--text); }
     .btn-danger { background: #ef4444; color: white; }
 
+    /* Peta Utama di Atas */
     #map { width: 100%; height: 380px; background: #cbd5e1; z-index: 1; }
 
     .container { max-width: 1000px; margin: 1rem auto; padding: 0 1rem; width: 100%; }
@@ -47,9 +49,19 @@
     /* Modal Form Tambah Data */
     .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; padding: 1rem; }
     .modal.active { display: flex; }
-    .modal-content { background: white; border-radius: 8px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; }
+    .modal-content { background: white; border-radius: 8px; width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; }
     .form-group { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.8rem; }
     .form-group input, .form-group select, .form-group textarea { padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; }
+
+    /* Peta Location Picker di Dalam Form Modal */
+    #picker-map {
+      width: 100%;
+      height: 220px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #cbd5e1;
+      margin-top: 0.3rem;
+    }
   </style>
 </head>
 <body>
@@ -91,13 +103,17 @@
     </div>
   </main>
 
-  <!-- Modal Form Tambah Usaha (Khusus Owner yang Login) -->
+  <!-- Modal Form Tambah Usaha (Lengkap Dengan Location Picker) -->
   <div class="modal" id="add-modal">
     <div class="modal-content">
       <h2 style="color:var(--primary); margin-bottom:1rem;">Tambah Usaha Baru</h2>
       <form id="add-form">
-        <div class="form-group"><label>Nama Usaha</label><input type="text" id="f-name" required placeholder="Contoh: Bandar Laundry"></div>
-        <div class="form-group"><label>Kategori</label>
+        <div class="form-group">
+          <label>Nama Usaha</label>
+          <input type="text" id="f-name" required placeholder="Contoh: Bandar Laundry">
+        </div>
+        <div class="form-group">
+          <label>Kategori</label>
           <select id="f-category" required>
             <option value="Laundry Kiloan">Laundry Kiloan</option>
             <option value="Laundry Satuan">Laundry Satuan</option>
@@ -107,13 +123,38 @@
             <option value="Car Wash">Car Wash</option>
           </select>
         </div>
-        <div class="form-group"><label>Alamat Jalan</label><input type="text" id="f-address" required></div>
-        <div class="form-group"><label>Kota</label><input type="text" id="f-city" required placeholder="Bogor"></div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-          <div class="form-group"><label>Latitude</label><input type="number" step="any" id="f-lat" required placeholder="-6.4025"></div>
-          <div class="form-group"><label>Longitude</label><input type="number" step="any" id="f-lng" required placeholder="106.9680"></div>
+        <div class="form-group">
+          <label>Alamat Jalan</label>
+          <input type="text" id="f-address" required placeholder="Jl. Raya Cileungsi No. 12">
         </div>
-        <div class="form-group"><label>WhatsApp</label><input type="text" id="f-wa" required placeholder="085712345678"></div>
+        <div class="form-group">
+          <label>Kota</label>
+          <input type="text" id="f-city" required placeholder="Bogor">
+        </div>
+
+        <!-- PETA PICKER LOKASI -->
+        <div class="form-group">
+          <label>Pilih Lokasi di Peta (Klik pada lokasi usaha)</label>
+          <div id="picker-map"></div>
+          <small style="color:var(--text-muted);">Klik pada peta di atas untuk memindahkan marker lokasi.</small>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div class="form-group">
+            <label>Latitude</label>
+            <input type="number" step="any" id="f-lat" required readonly style="background:#f1f5f9;">
+          </div>
+          <div class="form-group">
+            <label>Longitude</label>
+            <input type="number" step="any" id="f-lng" required readonly style="background:#f1f5f9;">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>WhatsApp</label>
+          <input type="text" id="f-wa" required placeholder="085712345678">
+        </div>
+
         <div style="display:flex; gap:0.5rem; margin-top:1rem;">
           <button type="submit" class="btn btn-primary" style="flex:1;">Simpan Usaha</button>
           <button type="button" class="btn btn-secondary" id="close-modal-btn">Batal</button>
@@ -142,14 +183,14 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    let map, markersGroup;
+    let mainMap, mainMarkersGroup;
+    let pickerMap, pickerMarker;
     let rawData = [];
     let filteredData = [];
     let currentPage = 1;
     const PER_PAGE = 10;
     let currentUser = null;
 
-    // Detect Base Path untuk Link URL SEO (/directoryv2)
     function getBasePath() {
       return window.location.pathname.startsWith('/directoryv2') ? '/directoryv2' : '';
     }
@@ -158,15 +199,47 @@
       return text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '');
     }
 
-    // 1. Inisialisasi Peta
-    function initMap() {
-      map = L.map('map').setView([-6.4025, 106.9680], 11);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-      markersGroup = L.layerGroup().addTo(map);
-      setTimeout(() => map.invalidateSize(), 300);
+    // 1. Inisialisasi Peta Utama (Halaman Depan)
+    function initMainMap() {
+      mainMap = L.map('map').setView([-6.4025, 106.9680], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mainMap);
+      mainMarkersGroup = L.layerGroup().addTo(mainMap);
+      setTimeout(() => mainMap.invalidateSize(), 300);
     }
 
-    // 2. Load Data dari Firestore
+    // 2. Inisialisasi Peta Location Picker (Di Dalam Form Modal)
+    function initPickerMap() {
+      if (pickerMap) return; // Mencegah re-initialization
+
+      const defaultLat = -6.4025;
+      const defaultLng = 106.9680;
+
+      pickerMap = L.map('picker-map').setView([defaultLat, defaultLng], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(pickerMap);
+
+      // Event Klik Peta Picker
+      pickerMap.on('click', (e) => {
+        setPickerLocation(e.latlng.lat, e.latlng.lng);
+      });
+    }
+
+    function setPickerLocation(lat, lng) {
+      document.getElementById("f-lat").value = lat.toFixed(6);
+      document.getElementById("f-lng").value = lng.toFixed(6);
+
+      if (pickerMarker) {
+        pickerMarker.setLatLng([lat, lng]);
+      } else {
+        pickerMarker = L.marker([lat, lng], { draggable: true }).addTo(pickerMap);
+        pickerMarker.on('dragend', (e) => {
+          const pos = e.target.getLatLng();
+          document.getElementById("f-lat").value = pos.lat.toFixed(6);
+          document.getElementById("f-lng").value = pos.lng.toFixed(6);
+        });
+      }
+    }
+
+    // 3. Load Data Usaha dari Firestore
     async function loadData() {
       try {
         const q = query(collection(db, "businesses"), where("status", "==", "active"));
@@ -192,7 +265,7 @@
     }
 
     function updateMapMarkers() {
-      markersGroup.clearLayers();
+      mainMarkersGroup.clearLayers();
       const bounds = [];
       const basePath = getBasePath();
 
@@ -203,11 +276,11 @@
           
           const m = L.marker([d.latitude, d.longitude]);
           m.bindPopup(`<b>${d.name}</b><br>${d.category}<br><a href="${detailUrl}">Lihat Halaman Detail</a>`);
-          markersGroup.addLayer(m);
+          mainMarkersGroup.addLayer(m);
         }
       });
 
-      if (bounds.length > 0) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+      if (bounds.length > 0) mainMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
     }
 
     function renderList() {
@@ -230,7 +303,6 @@
         const citySlug = createSlug(d.city || 'lokasi');
         const itemSlug = d.slug || createSlug(d.name);
         
-        // SEO URL Permanen yang dapat diklik di Halaman Baru
         const detailUrl = `${basePath}/${categorySlug}/${citySlug}/${itemSlug}`;
 
         const card = document.createElement("div");
@@ -274,7 +346,7 @@
       document.getElementById("p-last").onclick = () => { currentPage = totalPages; renderList(); };
     }
 
-    // 3. Status Auth & Form Modal
+    // 4. Handle Status Login & Opening Modal
     onAuthStateChanged(auth, (user) => {
       currentUser = user;
       const statusText = document.getElementById("user-status-text");
@@ -294,13 +366,22 @@
       }
     });
 
+    // Buka Modal Tambah Usaha
     document.getElementById("add-data-btn").onclick = () => {
       document.getElementById("add-modal").classList.add("active");
+      
+      // Render Peta Picker saat modal dibuka
+      setTimeout(() => {
+        initPickerMap();
+        if (pickerMap) pickerMap.invalidateSize();
+      }, 200);
     };
+
     document.getElementById("close-modal-btn").onclick = () => {
       document.getElementById("add-modal").classList.remove("active");
     };
 
+    // Form Submit Usaha Baru
     document.getElementById("add-form").onsubmit = async (e) => {
       e.preventDefault();
       const name = document.getElementById("f-name").value;
@@ -325,11 +406,12 @@
         alert("Usaha baru berhasil disimpan!");
         document.getElementById("add-modal").classList.remove("active");
         document.getElementById("add-form").reset();
+        if (pickerMarker) pickerMap.removeLayer(pickerMarker);
         loadData();
       } catch (err) { alert("Error: " + err.message); }
     };
 
-    // 4. Seed Dummy Data
+    // 5. Seed Dummy Data
     async function seedData() {
       const dummy = [
         { name: "Bandar Laundry", category: "Laundry Kiloan", address: "Jl. Raya Cileungsi No. 12", city: "Bogor", latitude: -6.4025, longitude: 106.9680, status: "active" },
@@ -359,12 +441,12 @@
           createdAt: serverTimestamp()
         });
       }
-      alert("Berhasil mengunggah data! Halaman akan direfresh.");
+      alert("Berhasil mengunggah data!");
       loadData();
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-      initMap();
+      initMainMap();
       loadData();
       document.getElementById("search").addEventListener("input", applyFilter);
       document.getElementById("seed-btn").onclick = seedData;
