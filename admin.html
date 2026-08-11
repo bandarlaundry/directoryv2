@@ -11,7 +11,7 @@
     header { background: white; padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
     header h1 { font-size: 1.2rem; color: var(--primary); }
     .container { max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem; }
-    .btn { padding: 0.4rem 0.8rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 0.8rem; text-decoration: none; }
+    .btn { padding: 0.5rem 0.9rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 0.85rem; text-decoration: none; display: inline-block; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-success { background: #16a34a; color: white; }
     .btn-danger { background: #ef4444; color: white; }
@@ -24,7 +24,33 @@
     .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
     .badge-pending { background: #fef3c7; color: #b45309; }
     .badge-active { background: #dcfce7; color: #15803d; }
-    .badge-draft { background: #f1f5f9; color: #475569; }
+
+    /* MODAL FORM TAMBAH USER */
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; padding: 1rem; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 8px; width: 100%; max-width: 450px; padding: 1.5rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.8rem; }
+    .form-group input { padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; }
+
+    /* TOAST STYLING */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      z-index: 3000;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      text-align: center;
+    }
+    .toast.error { background: #ef4444; }
+    .toast.success { background: #16a34a; }
   </style>
 </head>
 <body>
@@ -43,7 +69,7 @@
     <section class="section-box">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2>Manajemen User / Owner</h2>
-        <button id="add-user-btn" class="btn btn-primary">+ Tambah User Manual</button>
+        <button id="open-user-modal-btn" class="btn btn-primary">+ Tambah User Manual</button>
       </div>
       <table>
         <thead>
@@ -80,6 +106,38 @@
     </section>
   </main>
 
+  <!-- MODAL FORM TAMBAH USER MANUAL -->
+  <div class="modal" id="user-modal">
+    <div class="modal-content">
+      <h2 style="color:var(--primary); margin-bottom:1rem;">Tambah User Manual</h2>
+      <form id="add-user-form">
+        <div class="form-group">
+          <label>Nama Owner</label>
+          <input type="text" id="u-name" required placeholder="Contoh: Budi Pratama">
+        </div>
+        <div class="form-group">
+          <label>Nomor WhatsApp</label>
+          <input type="text" id="u-phone" required placeholder="085712345678">
+        </div>
+        <div class="form-group">
+          <label>Email Owner</label>
+          <input type="email" id="u-email" required placeholder="budi@gmail.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="u-password" required minlength="6" placeholder="Minimal 6 karakter">
+        </div>
+
+        <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Simpan User</button>
+          <button type="button" class="btn btn-secondary" id="close-user-modal-btn">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -98,11 +156,19 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Guard Halaman Admin
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById("toast");
+      toast.innerText = msg;
+      toast.className = `toast ${isError ? 'error' : 'success'}`;
+      toast.style.display = "block";
+      setTimeout(() => { toast.style.display = "none"; }, 3500);
+    }
+
+    // Guard Admin
     onAuthStateChanged(auth, async (user) => {
       if (!user || user.email !== "bandardeterjen@gmail.com") {
-        alert("Akses Ditolak! Halaman ini khusus Super Admin bandardeterjen@gmail.com.");
-        window.location.href = "./auth.html";
+        showToast("Akses Ditolak! Khusus Super Admin.", true);
+        setTimeout(() => { window.location.href = "./auth.html"; }, 1500);
         return;
       }
 
@@ -113,7 +179,7 @@
 
     document.getElementById("logout-btn").onclick = () => signOut(auth).then(() => window.location.href = "./auth.html");
 
-    // 1. MANAJEMEN USER / OWNER
+    // Load User List
     async function loadUsers() {
       const snap = await getDocs(collection(db, "users"));
       const tbody = document.getElementById("user-table-body");
@@ -121,7 +187,7 @@
 
       snap.forEach(d => {
         const u = { id: d.id, ...d.data() };
-        if (u.role === 'admin') return; // Skip Super Admin
+        if (u.role === 'admin') return;
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -140,44 +206,51 @@
           if (document.getElementById(`app-u-${u.id}`)) {
             document.getElementById(`app-u-${u.id}`).onclick = async () => {
               await updateDoc(doc(db, "users", u.id), { status: "approved" });
-              alert(`User ${u.email} berhasil disetujui/approved!`);
+              showToast(`User ${u.email} berhasil approved!`);
               loadUsers();
             };
           }
           document.getElementById(`del-u-${u.id}`).onclick = async () => {
-            if (confirm("Hapus user ini?")) {
-              await deleteDoc(doc(db, "users", u.id));
-              loadUsers();
-            }
+            await deleteDoc(doc(db, "users", u.id));
+            showToast("User berhasil dihapus.");
+            loadUsers();
           };
         }, 0);
       });
     }
 
-    // Tambah User Manual Oleh Admin (Otomatis Status = Approved)
-    document.getElementById("add-user-btn").onclick = async () => {
-      const name = prompt("Masukkan Nama Owner:");
-      const email = prompt("Masukkan Email Owner:");
-      const phone = prompt("Masukkan No WhatsApp:");
-      const password = prompt("Masukkan Password (Min 6 karakter):");
+    // Modal Form Handler untuk Tambah User Manual
+    const userModal = document.getElementById("user-modal");
+    document.getElementById("open-user-modal-btn").onclick = () => userModal.classList.add("active");
+    document.getElementById("close-user-modal-btn").onclick = () => userModal.classList.remove("active");
 
-      if (email && password) {
-        try {
-          const cred = await createUserWithEmailAndPassword(auth, email, password);
-          await setDoc(doc(db, "users", cred.user.uid), {
-            uid: cred.user.uid,
-            name, email, phone,
-            role: "owner",
-            status: "approved", // Otomatis disetujui jika dibuat admin
-            createdAt: serverTimestamp()
-          });
-          alert("User Owner Baru Berhasil Ditambahkan dan Langsung Status Approved!");
-          loadUsers();
-        } catch (err) { alert("Error: " + err.message); }
+    document.getElementById("add-user-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("u-name").value;
+      const phone = document.getElementById("u-phone").value;
+      const email = document.getElementById("u-email").value.trim();
+      const password = document.getElementById("u-password").value;
+
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, "users", cred.user.uid), {
+          uid: cred.user.uid,
+          name, phone, email,
+          role: "owner",
+          status: "approved", // Langsung approved jika dibuat oleh admin
+          createdAt: serverTimestamp()
+        });
+
+        showToast("User Owner Baru Berhasil Ditambahkan!");
+        userModal.classList.remove("active");
+        document.getElementById("add-user-form").reset();
+        loadUsers();
+      } catch (err) {
+        showToast("Gagal: " + err.message, true);
       }
     };
 
-    // 2. MANAJEMEN USAHA (STATUS: ACTIVE, PENDING, DRAFT, INACTIVE)
+    // Load Business List
     async function loadBusinesses() {
       const snap = await getDocs(collection(db, "businesses"));
       const tbody = document.getElementById("business-table-body");
@@ -209,15 +282,14 @@
           document.getElementById(`save-b-${b.id}`).onclick = async () => {
             const newStatus = document.getElementById(`status-sel-${b.id}`).value;
             await updateDoc(doc(db, "businesses", b.id), { status: newStatus });
-            alert(`Status usaha ${b.name} diubah menjadi ${newStatus}!`);
+            showToast(`Status usaha ${b.name} diubah menjadi ${newStatus}!`);
             loadBusinesses();
           };
 
           document.getElementById(`del-b-${b.id}`).onclick = async () => {
-            if (confirm(`Hapus permanen usaha ${b.name}?`)) {
-              await deleteDoc(doc(db, "businesses", b.id));
-              loadBusinesses();
-            }
+            await deleteDoc(doc(db, "businesses", b.id));
+            showToast(`Usaha ${b.name} berhasil dihapus.`);
+            loadBusinesses();
           };
         }, 0);
       });
