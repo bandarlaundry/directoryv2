@@ -4,8 +4,8 @@ import { collection, getDocs, query, where } from "https://www.gstatic.com/fireb
 // Dapatkan base path repositori secara dinamis
 export function getBasePath() {
   const path = window.location.pathname;
-  if (path.startsWith('/repositoryv2')) {
-    return '/repositoryv2';
+  if (path.startsWith('/directoryv2')) {
+    return '/directoryv2';
   }
   return '';
 }
