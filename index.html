@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Laundry Directory V2.0 — Directory & Map</title>
-  
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  
+
   <style>
     :root {
       --primary: #0284c7;
@@ -15,33 +15,41 @@
       --text: #0f172a;
       --text-muted: #64748b;
       --border: #e2e8f0;
-      --radius: 12px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
     body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
-    
+
     header { background: var(--surface); padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
     header h1 { font-size: 1.2rem; color: var(--primary); }
-    
-    .btn { padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; text-decoration: none; }
+
+    .btn { padding: 0.5rem 0.9rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-secondary { background: #e2e8f0; color: var(--text); }
-    
-    /* Peta di atas dengan tinggi pasti */
+    .btn-danger { background: #ef4444; color: white; }
+
     #map { width: 100%; height: 380px; background: #cbd5e1; z-index: 1; }
-    
+
     .container { max-width: 1000px; margin: 1rem auto; padding: 0 1rem; width: 100%; }
     .controls { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
     .controls input { flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; }
-    
+
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
     .card { background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.5rem; }
+    .card-title { color: var(--primary); font-weight: 700; text-decoration: none; font-size: 1.05rem; }
+    .card-title:hover { text-decoration: underline; }
     .badge { background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; width: fit-content; }
-    
+
     .pagination { display: flex; justify-content: center; gap: 0.3rem; margin: 1.5rem 0; }
     .page-btn { padding: 0.4rem 0.8rem; border: 1px solid var(--border); background: white; border-radius: 4px; cursor: pointer; }
     .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
     .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Modal Form Tambah Data */
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; padding: 1rem; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 8px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.8rem; }
+    .form-group input, .form-group select, .form-group textarea { padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; }
   </style>
 </head>
 <body>
@@ -49,10 +57,10 @@
   <header>
     <div>
       <h1>Laundry Directory V2.0</h1>
-      <small style="color:var(--text-muted);">Peta & Katalog Usaha</small>
+      <small style="color:var(--text-muted);" id="user-status-text">Memuat status user...</small>
     </div>
-    <div>
-      <button id="seed-btn" class="btn btn-secondary">🌱 Isi 15 Data Dummy</button>
+    <div id="auth-buttons-wrapper">
+      <a href="./auth.html" class="btn btn-primary" id="login-nav-btn">🔑 Login / Register</a>
     </div>
   </header>
 
@@ -62,6 +70,8 @@
   <main class="container">
     <div class="controls">
       <input type="text" id="search" placeholder="Cari laundry, cuci sepatu, kota...">
+      <button id="add-data-btn" class="btn btn-primary" style="display:none;">+ Tambah Usaha</button>
+      <button id="seed-btn" class="btn btn-secondary">🌱 Isi 15 Dummy</button>
     </div>
 
     <!-- Container Data -->
@@ -71,7 +81,7 @@
       </div>
     </div>
 
-    <!-- Pagination -->
+    <!-- Pagination Controls -->
     <div class="pagination" id="pagination" style="display: none;">
       <button class="page-btn" id="p-first">&lt;&lt;</button>
       <button class="page-btn" id="p-prev">&lt;</button>
@@ -81,13 +91,44 @@
     </div>
   </main>
 
+  <!-- Modal Form Tambah Usaha (Khusus Owner yang Login) -->
+  <div class="modal" id="add-modal">
+    <div class="modal-content">
+      <h2 style="color:var(--primary); margin-bottom:1rem;">Tambah Usaha Baru</h2>
+      <form id="add-form">
+        <div class="form-group"><label>Nama Usaha</label><input type="text" id="f-name" required placeholder="Contoh: Bandar Laundry"></div>
+        <div class="form-group"><label>Kategori</label>
+          <select id="f-category" required>
+            <option value="Laundry Kiloan">Laundry Kiloan</option>
+            <option value="Laundry Satuan">Laundry Satuan</option>
+            <option value="Cuci Sepatu">Cuci Sepatu</option>
+            <option value="Cuci Sofa">Cuci Sofa</option>
+            <option value="Home Cleaning">Home Cleaning</option>
+            <option value="Car Wash">Car Wash</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Alamat Jalan</label><input type="text" id="f-address" required></div>
+        <div class="form-group"><label>Kota</label><input type="text" id="f-city" required placeholder="Bogor"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div class="form-group"><label>Latitude</label><input type="number" step="any" id="f-lat" required placeholder="-6.4025"></div>
+          <div class="form-group"><label>Longitude</label><input type="number" step="any" id="f-lng" required placeholder="106.9680"></div>
+        </div>
+        <div class="form-group"><label>WhatsApp</label><input type="text" id="f-wa" required placeholder="085712345678"></div>
+        <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Simpan Usaha</button>
+          <button type="button" class="btn btn-secondary" id="close-modal-btn">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, getDocs, addDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    // Konfigurasi Firebase Proyek Anda
     const firebaseConfig = {
       apiKey: "AIzaSyAY2JOM_GK_c8MIKOOROjG61XtC-VxF3Gc",
       authDomain: "laundry-directory-1915d.firebaseapp.com",
@@ -99,42 +140,46 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
     let map, markersGroup;
     let rawData = [];
     let filteredData = [];
     let currentPage = 1;
     const PER_PAGE = 10;
+    let currentUser = null;
+
+    // Detect Base Path untuk Link URL SEO (/directoryv2)
+    function getBasePath() {
+      return window.location.pathname.startsWith('/directoryv2') ? '/directoryv2' : '';
+    }
+
+    function createSlug(text) {
+      return text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '');
+    }
 
     // 1. Inisialisasi Peta
     function initMap() {
       map = L.map('map').setView([-6.4025, 106.9680], 11);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
       markersGroup = L.layerGroup().addTo(map);
-      
       setTimeout(() => map.invalidateSize(), 300);
     }
 
-    // 2. Fetch Data dari Firestore
+    // 2. Load Data dari Firestore
     async function loadData() {
       try {
         const q = query(collection(db, "businesses"), where("status", "==", "active"));
         const snap = await getDocs(q);
         rawData = [];
         snap.forEach(d => rawData.push({ id: d.id, ...d.data() }));
-        
         applyFilter();
       } catch (err) {
         console.error("Firestore Error:", err);
-        document.getElementById("data-list").innerHTML = `
-          <div style="grid-column: 1/-1; text-align: center; color: red; padding: 2rem;">
-            Gagal mengambil data dari Firestore. Pastikan Firestore Rules di Firebase Console sudah di-publish ke 'allow read, write: if true;'.
-          </div>
-        `;
+        document.getElementById("data-list").innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: red;">Gagal mengambil data dari Firestore.</div>`;
       }
     }
 
-    // 3. Filter & Pagination
     function applyFilter() {
       const kw = document.getElementById("search").value.toLowerCase().trim();
       filteredData = rawData.filter(d => 
@@ -149,27 +194,29 @@
     function updateMapMarkers() {
       markersGroup.clearLayers();
       const bounds = [];
+      const basePath = getBasePath();
 
       filteredData.forEach(d => {
         if (d.latitude && d.longitude) {
           bounds.push([d.latitude, d.longitude]);
+          const detailUrl = `${basePath}/${createSlug(d.category)}/${createSlug(d.city || 'lokasi')}/${d.slug || createSlug(d.name)}`;
+          
           const m = L.marker([d.latitude, d.longitude]);
-          m.bindPopup(`<b>${d.name}</b><br>${d.category}<br>📍 ${d.city}`);
+          m.bindPopup(`<b>${d.name}</b><br>${d.category}<br><a href="${detailUrl}">Lihat Halaman Detail</a>`);
           markersGroup.addLayer(m);
         }
       });
 
-      if (bounds.length > 0) {
-        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
-      }
+      if (bounds.length > 0) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
     }
 
     function renderList() {
       const listEl = document.getElementById("data-list");
       listEl.innerHTML = "";
+      const basePath = getBasePath();
 
       if (filteredData.length === 0) {
-        listEl.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:2rem;">Data tidak ditemukan. Klik tombol "Isi 15 Data Dummy" di atas jika database masih kosong.</div>`;
+        listEl.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:2rem;">Data tidak ditemukan.</div>`;
         document.getElementById("pagination").style.display = "none";
         return;
       }
@@ -179,13 +226,20 @@
       const pageItems = filteredData.slice(start, start + PER_PAGE);
 
       pageItems.forEach(d => {
+        const categorySlug = createSlug(d.category || 'laundry');
+        const citySlug = createSlug(d.city || 'lokasi');
+        const itemSlug = d.slug || createSlug(d.name);
+        
+        // SEO URL Permanen yang dapat diklik di Halaman Baru
+        const detailUrl = `${basePath}/${categorySlug}/${citySlug}/${itemSlug}`;
+
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
           <span class="badge">${d.category}</span>
-          <strong style="font-size:1rem; color:var(--primary);">${d.name}</strong>
+          <a href="${detailUrl}" class="card-title">${d.name}</a>
           <small style="color:var(--text-muted);">📍 ${d.address}, ${d.city}</small>
-          <small>🕒 ${d.openingHours || '-'}</small>
+          <a href="${detailUrl}" class="btn btn-secondary" style="font-size:0.75rem; text-align:center; margin-top:0.3rem;">Buka Halaman Detail →</a>
         `;
         listEl.appendChild(card);
       });
@@ -197,11 +251,7 @@
       const pContainer = document.getElementById("pagination");
       const numbersEl = document.getElementById("p-numbers");
 
-      if (totalPages <= 1) {
-        pContainer.style.display = "none";
-        return;
-      }
-
+      if (totalPages <= 1) { pContainer.style.display = "none"; return; }
       pContainer.style.display = "flex";
       numbersEl.innerHTML = "";
 
@@ -223,6 +273,61 @@
       document.getElementById("p-next").onclick = () => { if (currentPage < totalPages) { currentPage++; renderList(); } };
       document.getElementById("p-last").onclick = () => { currentPage = totalPages; renderList(); };
     }
+
+    // 3. Status Auth & Form Modal
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user;
+      const statusText = document.getElementById("user-status-text");
+      const authWrapper = document.getElementById("auth-buttons-wrapper");
+      const addBtn = document.getElementById("add-data-btn");
+
+      if (user) {
+        statusText.innerText = `Logged in: ${user.email}`;
+        authWrapper.innerHTML = `<button class="btn btn-danger" id="logout-btn">Logout</button>`;
+        addBtn.style.display = "inline-block";
+
+        document.getElementById("logout-btn").onclick = () => signOut(auth);
+      } else {
+        statusText.innerText = `Peta & Katalog Usaha`;
+        authWrapper.innerHTML = `<a href="./auth.html" class="btn btn-primary">🔑 Login / Register</a>`;
+        addBtn.style.display = "none";
+      }
+    });
+
+    document.getElementById("add-data-btn").onclick = () => {
+      document.getElementById("add-modal").classList.add("active");
+    };
+    document.getElementById("close-modal-btn").onclick = () => {
+      document.getElementById("add-modal").classList.remove("active");
+    };
+
+    document.getElementById("add-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("f-name").value;
+      const cat = document.getElementById("f-category").value;
+      const city = document.getElementById("f-city").value;
+
+      try {
+        await addDoc(collection(db, "businesses"), {
+          name,
+          slug: createSlug(name),
+          category: cat,
+          address: document.getElementById("f-address").value,
+          city,
+          latitude: parseFloat(document.getElementById("f-lat").value),
+          longitude: parseFloat(document.getElementById("f-lng").value),
+          whatsapp: document.getElementById("f-wa").value,
+          ownerId: currentUser.uid,
+          status: "active",
+          createdAt: serverTimestamp()
+        });
+
+        alert("Usaha baru berhasil disimpan!");
+        document.getElementById("add-modal").classList.remove("active");
+        document.getElementById("add-form").reset();
+        loadData();
+      } catch (err) { alert("Error: " + err.message); }
+    };
 
     // 4. Seed Dummy Data
     async function seedData() {
@@ -248,8 +353,9 @@
       for (const item of dummy) {
         await addDoc(collection(db, "businesses"), {
           ...item,
-          slug: item.name.toLowerCase().replace(/\s+/g, '-'),
+          slug: createSlug(item.name),
           openingHours: "08:00 - 20:00",
+          whatsapp: "085712345678",
           createdAt: serverTimestamp()
         });
       }
