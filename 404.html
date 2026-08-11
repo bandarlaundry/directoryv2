@@ -7,24 +7,18 @@
   <meta id="meta-desc" name="description" content="Informasi detail layanan laundry dan cleaning service.">
   <link id="canonical-url" rel="canonical" href="" />
 
-  <meta id="og-title" property="og:title" content="Memuat..." />
-  <meta id="og-desc" property="og:description" content="..." />
-  <meta id="og-url" property="og:url" content="" />
-  <meta id="og-image" property="og:image" content="" />
-
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="./css/style.css">
-
+  <link rel="stylesheet" href="/directoryv2/css/style.css">
   <script id="json-ld-schema" type="application/ld+json"></script>
 </head>
 <body>
 
   <header class="app-header">
     <div class="brand">
-      <h1><a href="/repositoryv2/">Laundry Directory V2.0</a></h1>
+      <h1><a href="/directoryv2/">Laundry Directory V2.0</a></h1>
       <p>Halaman Detail Resmi Usaha</p>
     </div>
-    <a href="/" class="btn btn-secondary">← Kembali ke Peta</a>
+    <a href="/directoryv2/" class="btn btn-secondary">← Kembali ke Peta</a>
   </header>
 
   <main class="detail-container">
@@ -35,13 +29,13 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
-    import { fetchBusinessBySlug } from './js/business.js';
+    import { fetchBusinessBySlug } from '/directoryv2/js/business.js';
 
     document.addEventListener("DOMContentLoaded", async () => {
       const pathSegments = window.location.pathname.split('/').filter(Boolean);
       const slug = pathSegments[pathSegments.length - 1];
 
-      if (!slug || slug === 'repositoryv2' || slug === '404.html' || slug === 'index.html') {
+      if (!slug || slug === 'directoryv2' || slug === '404.html' || slug === 'index.html') {
         showError("URL tidak valid.");
         return;
       }
@@ -53,7 +47,6 @@
           return;
         }
         renderBusinessDetail(business);
-        injectSEOMetadata(business);
       } catch (err) {
         showError("Gagal memuat data usaha.");
       }
@@ -62,37 +55,30 @@
     function renderBusinessDetail(b) {
       let waNum = b.whatsapp ? b.whatsapp.replace(/[^0-9]/g, '') : '';
       if (waNum.startsWith('0')) waNum = '62' + waNum.slice(1);
-      const waMsg = encodeURIComponent("Halo, saya menemukan usaha Anda melalui Laundry Directory.");
-      const waUrl = waNum ? `https://wa.me/${waNum}?text=${waMsg}` : '#';
+      const waUrl = waNum ? `https://wa.me/${waNum}` : '#';
       const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${b.latitude},${b.longitude}`;
 
       const container = document.getElementById("detail-card");
       container.innerHTML = `
         ${b.imageUrl ? `<img src="${b.imageUrl}" style="width:100%; height:240px; object-fit:cover; border-radius:8px;" alt="${b.name}">` : ''}
-        
         <div>
           <span class="badge">${b.category}</span>
-          <h1 style="font-size:1.6rem; color:var(--primary); margin-top:0.4rem;">${b.name}${b.city}</h1>
+          <h1 style="font-size:1.6rem; color:var(--primary); margin-top:0.4rem;">${b.name} ${b.city}</h1>
         </div>
-
-        <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.5;">${b.description || 'Layanan profesional, cepat, dan terpercaya.'}</p>
-
+        <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.5;">${b.description || 'Layanan profesional dan terpercaya.'}</p>
         <hr style="border:0; border-top:1px solid var(--border);">
-
         <div style="display:flex; flex-direction:column; gap:8px; font-size:0.9rem;">
-          <div><strong>📍 Alamat:</strong> ${b.address}, ${b.city},${b.province}</div>
+          <div><strong>📍 Alamat:</strong> ${b.address}, ${b.city}, ${b.province}</div>
           <div><strong>🕒 Jam Operasional:</strong> ${b.openingHours || '-'}</div>
           <div><strong>📞 Telepon:</strong> ${b.phone || '-'}</div>
         </div>
-
         <div class="detail-actions" style="margin-top:1rem;">
           <a href="${waUrl}" target="_blank" class="btn btn-whatsapp">💬 WhatsApp</a>
           <a href="tel:${b.phone || ''}" class="btn btn-secondary">📞 Telepon</a>
           <a href="${mapsUrl}" target="_blank" class="btn btn-primary">🧭 Petunjuk Arah</a>
         </div>
-
         <h3 style="font-size:1.1rem; margin-top:1rem;">Lokasi Peta</h3>
-        <div id="detail-map"></div>
+        <div id="detail-map" style="height:250px; width:100%;"></div>
       `;
 
       if (b.latitude && b.longitude) {
@@ -102,23 +88,12 @@
       }
     }
 
-    function injectSEOMetadata(b) {
-      const pageTitle = `${b.name} ${b.city} —${b.category} | Laundry Directory`;
-      const pageDesc = `${b.name} di ${b.city} melayani${b.category}.`;
-
-      document.title = pageTitle;
-      document.getElementById("meta-desc").setAttribute("content", pageDesc);
-      document.getElementById("canonical-url").setAttribute("href", window.location.href);
-      document.getElementById("og-title").setAttribute("content", pageTitle);
-      document.getElementById("og-desc").setAttribute("content", pageDesc);
-    }
-
     function showError(msg) {
       document.getElementById("detail-card").innerHTML = `
         <div class="empty-state">
           <h2>Usaha Tidak Ditemukan</h2>
           <p>${msg}</p>
-          <a href="/" class="btn btn-primary" style="margin-top:1rem;">Kembali ke Utama</a>
+          <a href="/directoryv2/" class="btn btn-primary" style="margin-top:1rem;">Kembali ke Utama</a>
         </div>
       `;
     }
