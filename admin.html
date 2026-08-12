@@ -19,7 +19,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
     body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
     
-    /* HEADER RESPONSIVE DENGAN GAPA KECIL MENCEGAH TOMBOL TABRAKAN */
     header { background: var(--header-bg); color: var(--header-text); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem; }
     header h1 { font-size: 1.25rem; }
     .header-btns { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
@@ -42,13 +41,11 @@
     .badge-pending { background: #fef3c7; color: #b45309; }
     .badge-active { background: #dcfce7; color: #15803d; }
 
-    /* PAGINATION CONTROL STYLING */
     .pagination { display: flex; justify-content: center; gap: 0.3rem; margin-top: 1.2rem; flex-wrap: wrap; }
     .page-btn { padding: 0.4rem 0.8rem; border: 1px solid var(--border); background: white; border-radius: 4px; cursor: pointer; font-weight: 600; }
     .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
     .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* GALLERY GRID STYLING */
     .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.8rem; margin-top: 1rem; }
     .gallery-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
     .gallery-card img { width: 100%; height: 100px; object-fit: cover; border-radius: 4px; }
@@ -77,7 +74,6 @@
   </header>
 
   <main class="container">
-    <!-- 1. MANAJEMEN USER -->
     <section class="section-box">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
         <h2>Manajemen User / Owner</h2>
@@ -86,7 +82,7 @@
       <div id="user-cards-wrapper" class="admin-cards-list">Memuat data user...</div>
     </section>
 
-    <!-- 2. MODERASI USAHA WITH DYNAMIC PAGINATION (10 DATA/HALAMAN) -->
+    <!-- MODERASI USAHA (PAGINATION FIXED 12 DATA) -->
     <section class="section-box">
       <h2>Moderasi Usaha & Listing</h2>
       <div id="business-cards-wrapper" class="admin-cards-list">Memuat data usaha...</div>
@@ -100,11 +96,11 @@
       </div>
     </section>
 
-    <!-- 3. KELOLA GALERI RANDOM THUMBNAIL (CRUD ADMIN WITH PAGINATION 10 DATA) -->
+    <!-- KELOLA GALERI (PAGINATION FIXED 12 DATA) -->
     <section class="section-box">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
         <h2>Kelola Galeri Thumbnail Random Admin</h2>
-        <button id="add-gallery-btn" class="btn btn-primary">+ Tambah Image URL Galeri</button>
+        <button id="open-gallery-modal-btn" class="btn btn-primary">+ Tambah Image URL Galeri</button>
       </div>
       <div id="gallery-grid-wrapper" class="gallery-grid">Memuat galeri...</div>
       
@@ -125,7 +121,7 @@
     </div>
   </footer>
 
-  <!-- MODAL TAMBAH USER MANUAL -->
+  <!-- MODAL FORM TAMBAH USER MANUAL -->
   <div class="modal" id="user-modal">
     <div class="modal-content">
       <h2 style="color:var(--primary); margin-bottom:1rem;">Tambah User Manual</h2>
@@ -138,6 +134,24 @@
         <div style="display:flex; gap:0.5rem; margin-top:1rem;">
           <button type="submit" class="btn btn-primary" style="flex:1;">Simpan User</button>
           <button type="button" class="btn btn-secondary" id="close-user-modal-btn">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL FORM TAMBAH GAMBAR GALERI (IN-APP BANNER NO PROMPT) -->
+  <div class="modal" id="gallery-modal">
+    <div class="modal-content">
+      <h2 style="color:var(--primary); margin-bottom:1rem;">Tambah URL Gambar Galeri</h2>
+      <form id="add-gallery-form">
+        <div class="form-group">
+          <label>URL Gambar Baru</label>
+          <input type="url" id="g-url" required placeholder="https://images.unsplash.com/photo-...">
+        </div>
+
+        <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Simpan Gambar</button>
+          <button type="button" class="btn btn-secondary" id="close-gallery-modal-btn">Batal</button>
         </div>
       </form>
     </div>
@@ -165,13 +179,14 @@
 
     document.getElementById("current-year").innerText = new Date().getFullYear();
 
-    // Pagination State
     let allBusinesses = [];
     let bCurrentPage = 1;
 
     let allGallery = [];
     let gCurrentPage = 1;
-    const PER_PAGE = 10;
+    
+    // TAMPILAN FIXED 12 DATA PER HALAMAN
+    const PER_PAGE = 12;
 
     function showToast(msg, isError = false) {
       const toast = document.getElementById("toast");
@@ -194,7 +209,6 @@
 
     document.getElementById("logout-btn").onclick = () => signOut(auth).then(() => window.location.href = "./auth.html");
 
-    // 1. MANAJEMEN USER
     async function loadUsers() {
       const snap = await getDocs(collection(db, "users"));
       const wrapper = document.getElementById("user-cards-wrapper");
@@ -260,7 +274,7 @@
       } catch (err) { showToast("Gagal: " + err.message, true); }
     };
 
-    // 2. MODERASI USAHA WITH PAGINATION DINAMIS (10 ITEM/HALAMAN)
+    // MODERASI USAHA (PAGINATION 12 DATA)
     async function loadBusinesses() {
       const snap = await getDocs(collection(db, "businesses"));
       allBusinesses = [];
@@ -356,7 +370,7 @@
       document.getElementById("bp-last").onclick = () => { bCurrentPage = totalPages; renderBusinessesList(); };
     }
 
-    // 3. KELOLA GALERI THUMBNAIL (CRUD ADMIN WITH PAGINATION 10 DATA)
+    // KELOLA GALERI (FORM MODAL + PAGINATION 12 DATA)
     async function loadGallery() {
       const snap = await getDocs(collection(db, "adminGallery"));
       allGallery = [];
@@ -429,16 +443,24 @@
       document.getElementById("gp-last").onclick = () => { gCurrentPage = totalPages; renderGalleryGrid(); };
     }
 
-    // Tambah Image URL Galeri
-    document.getElementById("add-gallery-btn").onclick = async () => {
-      const url = prompt("Masukkan URL Gambar Baru untuk Galeri Random Admin:");
-      if (url && url.trim()) {
+    // FORM MODAL HANDLER TAMBAH GAMBAR GALERI
+    const galleryModal = document.getElementById("gallery-modal");
+    document.getElementById("open-gallery-modal-btn").onclick = () => galleryModal.classList.add("active");
+    document.getElementById("close-gallery-modal-btn").onclick = () => galleryModal.classList.remove("active");
+
+    document.getElementById("add-gallery-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const url = document.getElementById("g-url").value.trim();
+
+      if (url) {
         try {
           await addDoc(collection(db, "adminGallery"), {
-            url: url.trim(),
+            url: url,
             createdAt: serverTimestamp()
           });
-          showToast("URL Gambar berhasil ditambahkan ke galeri!");
+          showToast("Gambar galeri berhasil ditambahkan!");
+          galleryModal.classList.remove("active");
+          document.getElementById("add-gallery-form").reset();
           loadGallery();
         } catch (err) { showToast("Gagal: " + err.message, true); }
       }
