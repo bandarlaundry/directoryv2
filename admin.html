@@ -5,104 +5,69 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard — Laundry Directory V2.0</title>
   <style>
-    :root { --primary: #0284c7; --bg: #f8fafc; --text: #0f172a; --border: #e2e8f0; }
+    :root { --header-bg: #1e3a8a; --header-text: #ffffff; --bg: #f8fafc; --text: #000000; --border: #e2e8f0; --primary: #0284c7; }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
     body { background: var(--bg); color: var(--text); min-height: 100vh; }
-    header { background: white; padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    header h1 { font-size: 1.2rem; color: var(--primary); }
+    
+    header { background: var(--header-bg); color: var(--header-text); padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 1.2rem; }
+    
     .container { max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem; }
-    .btn { padding: 0.5rem 0.9rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 0.85rem; text-decoration: none; display: inline-block; }
+    .btn { padding: 0.5rem 0.9rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 0.85rem; text-decoration: none; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-success { background: #16a34a; color: white; }
     .btn-danger { background: #ef4444; color: white; }
-    .btn-secondary { background: #e2e8f0; color: var(--text); }
+    .btn-secondary { background: #e2e8f0; color: #000; }
     
     .section-box { background: white; padding: 1.2rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1.5rem; }
-    table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; }
-    th, td { padding: 0.6rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
-    th { background: #f1f5f9; }
-    .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+    
+    /* MOBILE-FRIENDLY CARD LAYOUT UNTUK TAMPILAN HP */
+    .admin-cards-list { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1rem; }
+    .admin-item-card { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .admin-item-header { display: flex; justify-content: space-between; align-items: center; }
+    .admin-item-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
+
+    .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; width: fit-content; }
     .badge-pending { background: #fef3c7; color: #b45309; }
     .badge-active { background: #dcfce7; color: #15803d; }
 
-    /* MODAL FORM TAMBAH USER */
     .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; padding: 1rem; }
     .modal.active { display: flex; }
     .modal-content { background: white; border-radius: 8px; width: 100%; max-width: 450px; padding: 1.5rem; }
     .form-group { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.8rem; }
     .form-group input { padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; }
 
-    /* TOAST STYLING */
-    .toast {
-      position: fixed;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1e293b;
-      color: white;
-      padding: 0.8rem 1.5rem;
-      border-radius: 999px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      z-index: 3000;
-      display: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      text-align: center;
-    }
-    .toast.error { background: #ef4444; }
-    .toast.success { background: #16a34a; }
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 0.8rem 1.5rem; border-radius: 999px; font-size: 0.85rem; z-index: 3000; display: none; }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>Laundry Directory Admin Panel</h1>
+    <h1>Admin Panel V2.0</h1>
     <div>
-      <span id="admin-info" style="font-size:0.85rem; margin-right:10px;"></span>
       <a href="./" class="btn btn-secondary">🌐 Ke Utama</a>
       <button id="logout-btn" class="btn btn-danger">Logout</button>
     </div>
   </header>
 
   <main class="container">
-    <!-- MODERASI USER / OWNER -->
+    <!-- MANAJEMEN USER / OWNER CARD LAYOUT -->
     <section class="section-box">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h2>Manajemen User / Owner</h2>
         <button id="open-user-modal-btn" class="btn btn-primary">+ Tambah User Manual</button>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Nama Owner</th>
-            <th>Email</th>
-            <th>WhatsApp</th>
-            <th>Status Approval</th>
-            <th>Aksi Admin</th>
-          </tr>
-        </thead>
-        <tbody id="user-table-body">
-          <tr><td colspan="5">Memuat data user...</td></tr>
-        </tbody>
-      </table>
+      <div id="user-cards-wrapper" class="admin-cards-list">
+        <div>Memuat data user...</div>
+      </div>
     </section>
 
-    <!-- MODERASI USAHA (DRAFT, PENDING, ACTIVE, INACTIVE) -->
+    <!-- MODERASI USAHA CARD LAYOUT -->
     <section class="section-box">
       <h2>Moderasi Usaha & Listing</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Nama Usaha</th>
-            <th>Kategori & Kota</th>
-            <th>Status Usaha</th>
-            <th>Aksi Admin</th>
-          </tr>
-        </thead>
-        <tbody id="business-table-body">
-          <tr><td colspan="4">Memuat data usaha...</td></tr>
-        </tbody>
-      </table>
+      <div id="business-cards-wrapper" class="admin-cards-list">
+        <div>Memuat data usaha...</div>
+      </div>
     </section>
   </main>
 
@@ -111,22 +76,10 @@
     <div class="modal-content">
       <h2 style="color:var(--primary); margin-bottom:1rem;">Tambah User Manual</h2>
       <form id="add-user-form">
-        <div class="form-group">
-          <label>Nama Owner</label>
-          <input type="text" id="u-name" required placeholder="Contoh: Budi Pratama">
-        </div>
-        <div class="form-group">
-          <label>Nomor WhatsApp</label>
-          <input type="text" id="u-phone" required placeholder="085712345678">
-        </div>
-        <div class="form-group">
-          <label>Email Owner</label>
-          <input type="email" id="u-email" required placeholder="budi@gmail.com">
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" id="u-password" required minlength="6" placeholder="Minimal 6 karakter">
-        </div>
+        <div class="form-group"><label>Nama Owner</label><input type="text" id="u-name" required placeholder="Budi Pratama"></div>
+        <div class="form-group"><label>Nomor WhatsApp</label><input type="text" id="u-phone" required placeholder="085712345678"></div>
+        <div class="form-group"><label>Email Owner</label><input type="email" id="u-email" required placeholder="budi@gmail.com"></div>
+        <div class="form-group"><label>Password</label><input type="password" id="u-password" required minlength="6"></div>
 
         <div style="display:flex; gap:0.5rem; margin-top:1rem;">
           <button type="submit" class="btn btn-primary" style="flex:1;">Simpan User</button>
@@ -159,136 +112,132 @@
     function showToast(msg, isError = false) {
       const toast = document.getElementById("toast");
       toast.innerText = msg;
-      toast.className = `toast ${isError ? 'error' : 'success'}`;
       toast.style.display = "block";
-      setTimeout(() => { toast.style.display = "none"; }, 3500);
+      setTimeout(() => { toast.style.display = "none"; }, 3000);
     }
 
-    // Guard Admin
     onAuthStateChanged(auth, async (user) => {
       if (!user || user.email !== "bandardeterjen@gmail.com") {
-        showToast("Akses Ditolak! Khusus Super Admin.", true);
-        setTimeout(() => { window.location.href = "./auth.html"; }, 1500);
+        alert("Akses Ditolak! Khusus Super Admin.");
+        window.location.href = "./auth.html";
         return;
       }
-
-      document.getElementById("admin-info").innerText = `Admin: ${user.email}`;
       loadUsers();
       loadBusinesses();
     });
 
     document.getElementById("logout-btn").onclick = () => signOut(auth).then(() => window.location.href = "./auth.html");
 
-    // Load User List
+    // Load User Card List (Mobile Friendly)
     async function loadUsers() {
       const snap = await getDocs(collection(db, "users"));
-      const tbody = document.getElementById("user-table-body");
-      tbody.innerHTML = "";
+      const wrapper = document.getElementById("user-cards-wrapper");
+      wrapper.innerHTML = "";
 
       snap.forEach(d => {
         const u = { id: d.id, ...d.data() };
         if (u.role === 'admin') return;
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td><strong>${u.name || '-'}</strong></td>
-          <td>${u.email}</td>
-          <td>${u.phone || '-'}</td>
-          <td><span class="badge ${u.status === 'approved' ? 'badge-active' : 'badge-pending'}">${u.status || 'pending'}</span></td>
-          <td>
-            ${u.status !== 'approved' ? `<button class="btn btn-success" id="app-u-${u.id}">Approve</button>` : ''}
+        const item = document.createElement("div");
+        item.className = "admin-item-card";
+        item.innerHTML = `
+          <div class="admin-item-header">
+            <strong>${u.name || 'Owner'}</strong>
+            <span class="badge ${u.status === 'approved' ? 'badge-active' : 'badge-pending'}">${u.status || 'pending'}</span>
+          </div>
+          <div><small>Email:</small> ${u.email}</div>
+          <div><small>WA:</small> ${u.phone || '-'}</div>
+          <div class="admin-item-actions">
+            ${u.status !== 'approved' ? `<button class="btn btn-success" id="app-u-${u.id}">Approve User</button>` : ''}
             <button class="btn btn-danger" id="del-u-${u.id}">Hapus</button>
-          </td>
+          </div>
         `;
-        tbody.appendChild(tr);
+        wrapper.appendChild(item);
 
         setTimeout(() => {
           if (document.getElementById(`app-u-${u.id}`)) {
             document.getElementById(`app-u-${u.id}`).onclick = async () => {
               await updateDoc(doc(db, "users", u.id), { status: "approved" });
-              showToast(`User ${u.email} berhasil approved!`);
+              showToast(`User ${u.email} approved!`);
               loadUsers();
             };
           }
           document.getElementById(`del-u-${u.id}`).onclick = async () => {
             await deleteDoc(doc(db, "users", u.id));
-            showToast("User berhasil dihapus.");
+            showToast("User dihapus.");
             loadUsers();
           };
         }, 0);
       });
     }
 
-    // Modal Form Handler untuk Tambah User Manual
     const userModal = document.getElementById("user-modal");
     document.getElementById("open-user-modal-btn").onclick = () => userModal.classList.add("active");
     document.getElementById("close-user-modal-btn").onclick = () => userModal.classList.remove("active");
 
     document.getElementById("add-user-form").onsubmit = async (e) => {
       e.preventDefault();
-      const name = document.getElementById("u-name").value;
-      const phone = document.getElementById("u-phone").value;
-      const email = document.getElementById("u-email").value.trim();
-      const password = document.getElementById("u-password").value;
-
       try {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        const cred = await createUserWithEmailAndPassword(auth, document.getElementById("u-email").value.trim(), document.getElementById("u-password").value);
         await setDoc(doc(db, "users", cred.user.uid), {
           uid: cred.user.uid,
-          name, phone, email,
-          role: "owner",
-          status: "approved", // Langsung approved jika dibuat oleh admin
+          name: document.getElementById("u-name").value,
+          phone: document.getElementById("u-phone").value,
+          email: document.getElementById("u-email").value.trim(),
+          role: "owner", status: "approved",
           createdAt: serverTimestamp()
         });
-
-        showToast("User Owner Baru Berhasil Ditambahkan!");
+        showToast("User Owner Baru Ditambahkan!");
         userModal.classList.remove("active");
         document.getElementById("add-user-form").reset();
         loadUsers();
-      } catch (err) {
-        showToast("Gagal: " + err.message, true);
-      }
+      } catch (err) { showToast("Gagal: " + err.message, true); }
     };
 
-    // Load Business List
+    // Load Business Card List (Mobile Friendly)
     async function loadBusinesses() {
       const snap = await getDocs(collection(db, "businesses"));
-      const tbody = document.getElementById("business-table-body");
-      tbody.innerHTML = "";
+      const wrapper = document.getElementById("business-cards-wrapper");
+      wrapper.innerHTML = "";
 
       snap.forEach(d => {
         const b = { id: d.id, ...d.data() };
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td><strong>${b.name}</strong></td>
-          <td>${b.category} (${b.city})</td>
-          <td>
+        const item = document.createElement("div");
+        item.className = "admin-item-card";
+        item.innerHTML = `
+          <div class="admin-item-header">
+            <strong>${b.name}</strong>
+            <small style="color:var(--primary); font-weight:bold;">${b.category}</small>
+          </div>
+          <div><small>Lokasi:</small> ${b.city}, ${b.province || ''}</div>
+          <div style="margin-top:4px;">
+            <label style="font-size:0.8rem; font-weight:bold;">Status Usaha: </label>
             <select id="status-sel-${b.id}" style="padding:4px; border-radius:4px;">
               <option value="active" ${b.status === 'active' ? 'selected' : ''}>Active (Publik)</option>
               <option value="pending" ${b.status === 'pending' ? 'selected' : ''}>Pending (Review)</option>
               <option value="draft" ${b.status === 'draft' ? 'selected' : ''}>Draft</option>
               <option value="inactive" ${b.status === 'inactive' ? 'selected' : ''}>Inactive</option>
             </select>
-          </td>
-          <td>
+          </div>
+          <div class="admin-item-actions">
             <button class="btn btn-primary" id="save-b-${b.id}">Simpan Status</button>
-            <button class="btn btn-danger" id="del-b-${b.id}">Hapus</button>
-          </td>
+            <button class="btn btn-danger" id="del-b-${b.id}">Hapus Usaha</button>
+          </div>
         `;
-        tbody.appendChild(tr);
+        wrapper.appendChild(item);
 
         setTimeout(() => {
           document.getElementById(`save-b-${b.id}`).onclick = async () => {
             const newStatus = document.getElementById(`status-sel-${b.id}`).value;
             await updateDoc(doc(db, "businesses", b.id), { status: newStatus });
-            showToast(`Status usaha ${b.name} diubah menjadi ${newStatus}!`);
+            showToast(`Status ${b.name} diubah menjadi ${newStatus}!`);
             loadBusinesses();
           };
 
           document.getElementById(`del-b-${b.id}`).onclick = async () => {
             await deleteDoc(doc(db, "businesses", b.id));
-            showToast(`Usaha ${b.name} berhasil dihapus.`);
+            showToast(`Usaha ${b.name} dihapus.`);
             loadBusinesses();
           };
         }, 0);
