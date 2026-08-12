@@ -4,48 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <!-- SEO META TAGS UTAMA -->
   <title>Laundry Directory — Cari Laundry, Cuci Sepatu & Cleaning Terdekat</title>
   <meta name="description" content="Temukan tempat laundry kiloan, cuci sepatu, home cleaning, cuci sofa, dan jasa kebersihan terdekat di lokasi Anda secara akurat berbasis peta interaktif.">
-  <meta name="keywords" content="laundry directory, cari laundry terdekat, cuci sepatu, home cleaning, cuci sofa, cuci kasur, car wash, jasa cleaning">
-  <meta name="author" content="Laundry Directory">
-  <meta name="robots" content="index, follow">
+  <meta name="keywords" content="laundry directory, cari laundry terdekat, cuci sepatu, home cleaning, cuci sofa">
   <link rel="canonical" href="https://bandarlaundry.github.io/directoryv2/" />
 
-  <!-- OPEN GRAPH / SOCIAL MEDIA SHARING (FACEBOOK, WHATSAPP, TELEGRAM) -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Laundry Directory V2.0" />
   <meta property="og:title" content="Laundry Directory — Cari Laundry & Cleaning Terdekat" />
-  <meta property="og:description" content="Temukan laundry kiloan, cuci sepatu, home cleaning, dan jasa kebersihan terdekat di seluruh Indonesia berbasis peta interaktif." />
+  <meta property="og:description" content="Temukan laundry kiloan, cuci sepatu, home cleaning, dan jasa kebersihan terdekat berbasis peta interaktif." />
   <meta property="og:url" content="https://bandarlaundry.github.io/directoryv2/" />
   <meta property="og:image" content="https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=1200&auto=format&fit=crop&q=80" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:locale" content="id_ID" />
 
-  <!-- TWITTER CARDS -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Laundry Directory — Cari Laundry & Cleaning Terdekat" />
-  <meta name="twitter:description" content="Temukan laundry kiloan, cuci sepatu, home cleaning, dan jasa kebersihan terdekat di seluruh Indonesia." />
-  <meta name="twitter:image" content="https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=1200&auto=format&fit=crop&q=80" />
-
-  <!-- SCHEMA.ORG STRUCTURED DATA FOR WEBSITE & SEARCH ENGINE -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "Laundry Directory V2.0",
-    "url": "https://bandarlaundry.github.io/directoryv2/",
-    "description": "Direktori dan peta interaktif tempat usaha laundry dan jasa kebersihan terdekat di Indonesia.",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://bandarlaundry.github.io/directoryv2/?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
-  }
-  </script>
-
-  <!-- Leaflet CSS & App Style -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <style>
@@ -130,7 +100,450 @@
     @media (min-width: 640px) {
       .footer-container { flex-direction: row; justify-content: space-between; text-align: left; }
     }
-
-    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 0.8rem 1.5rem; border-radius: 999px; font-size: 0.85rem; z-index: 3000; display: none; }
   </style>
 </head>
+<body>
+
+  <header>
+    <div>
+      <h1><a href="./">Laundry Directory V2.0</a></h1>
+      <small style="opacity: 0.8;" id="user-status-text">Memuat status...</small>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-dark" id="dark-mode-toggle">🌙 Mode Gelap</button>
+      <div id="auth-buttons-wrapper">
+        <a href="./auth.html" class="btn btn-primary">🔑 Login / Register</a>
+      </div>
+    </div>
+  </header>
+
+  <div id="map"></div>
+
+  <main class="container">
+    <div class="controls">
+      <input type="text" id="search" placeholder="Cari laundry, cuci sepatu, kota...">
+      <button id="add-data-btn" class="btn btn-primary" style="display:none;">+ Tambah Usaha</button>
+    </div>
+
+    <div id="data-list" class="grid">
+      <div style="grid-column: 1/-1; text-align: center; padding: 2rem;">Memuat data usaha...</div>
+    </div>
+
+    <div class="pagination" id="pagination" style="display: none;">
+      <button class="page-btn" id="p-first">&lt;&lt;</button>
+      <button class="page-btn" id="p-prev">&lt;</button>
+      <div id="p-numbers" style="display: flex; gap: 0.3rem;"></div>
+      <button class="page-btn" id="p-next">&gt;</button>
+      <button class="page-btn" id="p-last">&gt;&gt;</button>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-container">
+      <div class="footer-links">
+        <a href="./about.html">Tentang Kami</a>
+        <a href="./contact.html">Kontak</a>
+        <a href="./auth.html">Login / Registrasi</a>
+      </div>
+      <div class="copyright">
+        &copy; <span id="current-year"></span> Laundry Directory V2.0. Hak Cipta Dilindungi.
+      </div>
+    </div>
+  </footer>
+
+  <div class="modal" id="add-modal">
+    <div class="modal-content">
+      <h2 style="color:var(--primary); margin-bottom:1rem;" id="modal-title">Tambah Usaha Baru</h2>
+      <form id="add-form">
+        <input type="hidden" id="f-id">
+        <div class="form-group"><label>Nama Usaha</label><input type="text" id="f-name" required placeholder="Contoh: Bandar Laundry"></div>
+        <div class="form-group"><label>Kategori</label>
+          <select id="f-category" required>
+            <option value="Laundry Kiloan">Laundry Kiloan</option>
+            <option value="Laundry Satuan">Laundry Satuan</option>
+            <option value="Cuci Sepatu">Cuci Sepatu</option>
+            <option value="Cuci Sofa">Cuci Sofa</option>
+            <option value="Home Cleaning">Home Cleaning</option>
+            <option value="Car Wash">Car Wash</option>
+          </select>
+        </div>
+
+        <div class="form-group"><label>Provinsi</label>
+          <select id="f-province" required>
+            <option value="">-- Pilih Provinsi --</option>
+            <option value="Jawa Barat">Jawa Barat</option>
+            <option value="DKI Jakarta">DKI Jakarta</option>
+            <option value="Jawa Tengah">Jawa Tengah</option>
+            <option value="Jawa Timur">Jawa Timur</option>
+            <option value="Banten">Banten</option>
+            <option value="Bali">Bali</option>
+          </select>
+        </div>
+
+        <div class="form-group"><label>Kota / Kabupaten</label><input type="text" id="f-city" required placeholder="Ketik nama kota (misal: Bogor)"></div>
+        <div class="form-group"><label>Alamat Jalan</label><input type="text" id="f-address" required placeholder="Jl. Raya No. 12"></div>
+
+        <div class="form-group">
+          <label>URL Gambar/Foto Usaha (Opsional, Maks 3 Image)</label>
+          <div id="image-inputs-container" style="display:flex; flex-direction:column; gap:0.4rem;">
+            <input type="url" class="f-img-input" placeholder="URL Gambar 1 (Utama/Thumbnail)">
+          </div>
+          <button type="button" class="btn btn-secondary" id="add-img-col-btn" style="margin-top:0.4rem; font-size:0.75rem; width:fit-content;">+ Tambah Kolom Gambar</button>
+        </div>
+
+        <div class="form-group">
+          <label>Pilih Lokasi di Peta</label>
+          <div id="picker-map"></div>
+        </div>
+
+        <div class="coord-container">
+          <div class="form-group">
+            <label>Latitude</label>
+            <input type="number" step="any" id="f-lat" required readonly style="background:var(--border);">
+          </div>
+          <div class="form-group">
+            <label>Longitude</label>
+            <input type="number" step="any" id="f-lng" required readonly style="background:var(--border);">
+          </div>
+        </div>
+
+        <div class="form-group"><label>WhatsApp</label><input type="text" id="f-wa" required placeholder="085712345678"></div>
+
+        <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Simpan Data Usaha</button>
+          <button type="button" class="btn btn-secondary" id="close-modal-btn">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAY2JOM_GK_c8MIKOOROjG61XtC-VxF3Gc",
+      authDomain: "laundry-directory-1915d.firebaseapp.com",
+      projectId: "laundry-directory-1915d",
+      storageBucket: "laundry-directory-1915d.appspot.com",
+      messagingSenderId: "336437234560",
+      appId: "1:336437234560:web:69dc7cbb36704c9f614f65"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let mainMap, mainMarkersGroup, pickerMap, pickerMarker;
+    let rawData = [];
+    let filteredData = [];
+    let galleryImages = [];
+    let currentPage = 1;
+    const PER_PAGE = 12; // FIXED 12 DATA PER HALAMAN
+    let currentUser = null;
+
+    const INDONESIA_BOUNDS = L.latLngBounds(L.latLng(-11.1, 95.0), L.latLng(6.2, 141.0));
+
+    function getBasePath() { return window.location.pathname.startsWith('/directoryv2') ? '/directoryv2' : ''; }
+    function createSlug(text) { return text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, ''); }
+
+    document.getElementById("current-year").innerText = new Date().getFullYear();
+
+    const darkToggle = document.getElementById("dark-mode-toggle");
+    if (localStorage.getItem("theme") === "dark") {
+      document.body.classList.add("dark-mode");
+      darkToggle.innerText = "☀️ Mode Terang";
+    }
+    darkToggle.onclick = () => {
+      document.body.classList.toggle("dark-mode");
+      const isDark = document.body.classList.contains("dark-mode");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+      darkToggle.innerText = isDark ? "☀️ Mode Terang" : "🌙 Mode Gelap";
+    };
+
+    const imgContainer = document.getElementById("image-inputs-container");
+    const addImgBtn = document.getElementById("add-img-col-btn");
+
+    addImgBtn.onclick = () => {
+      const currentInputs = imgContainer.querySelectorAll(".f-img-input");
+      if (currentInputs.length < 3) {
+        const newInput = document.createElement("input");
+        newInput.type = "url";
+        newInput.className = "f-img-input";
+        newInput.placeholder = `URL Gambar ${currentInputs.length + 1}`;
+        imgContainer.appendChild(newInput);
+        if (imgContainer.querySelectorAll(".f-img-input").length >= 3) addImgBtn.style.display = "none";
+      }
+    };
+
+    function resetImageInputs(urls = []) {
+      imgContainer.innerHTML = "";
+      addImgBtn.style.display = "inline-block";
+      const count = Math.max(1, urls.length);
+      for (let i = 0; i < count; i++) {
+        if (i >= 3) break;
+        const input = document.createElement("input");
+        input.type = "url";
+        input.className = "f-img-input";
+        input.placeholder = `URL Gambar ${i + 1}`;
+        input.value = urls[i] || "";
+        imgContainer.appendChild(input);
+      }
+      if (imgContainer.querySelectorAll(".f-img-input").length >= 3) addImgBtn.style.display = "none";
+    }
+
+    function initMainMap() {
+      mainMap = L.map('map', { maxBounds: INDONESIA_BOUNDS, maxBoundsViscosity: 1.0, minZoom: 5 }).setView([-2.5489, 118.0149], 5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mainMap);
+      mainMarkersGroup = L.layerGroup().addTo(mainMap);
+      setTimeout(() => mainMap.invalidateSize(), 300);
+    }
+
+    function initPickerMap() {
+      if (pickerMap) return;
+      pickerMap = L.map('picker-map', { maxBounds: INDONESIA_BOUNDS, maxBoundsViscosity: 1.0, minZoom: 5 }).setView([-6.4025, 106.9680], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(pickerMap);
+      pickerMap.on('click', (e) => {
+        if (INDONESIA_BOUNDS.contains(e.latlng)) setPickerLocation(e.latlng.lat, e.latlng.lng);
+      });
+    }
+
+    function setPickerLocation(lat, lng) {
+      document.getElementById("f-lat").value = lat.toFixed(6);
+      document.getElementById("f-lng").value = lng.toFixed(6);
+      if (pickerMarker) pickerMarker.setLatLng([lat, lng]);
+      else pickerMarker = L.marker([lat, lng]).addTo(pickerMap);
+    }
+
+    async function loadData() {
+      try {
+        const gSnap = await getDocs(collection(db, "adminGallery"));
+        galleryImages = [];
+        gSnap.forEach(d => galleryImages.push(d.data().url));
+
+        const q = query(collection(db, "businesses"), where("status", "==", "active"));
+        const snap = await getDocs(q);
+        rawData = [];
+        snap.forEach(d => rawData.push({ id: d.id, ...d.data() }));
+        applyFilter();
+      } catch (err) { console.error("Error:", err); }
+    }
+
+    function applyFilter() {
+      const kw = document.getElementById("search").value.toLowerCase().trim();
+      filteredData = rawData.filter(d => `${d.name} ${d.category} ${d.city} ${d.province || ''} ${d.address}`.toLowerCase().includes(kw));
+      currentPage = 1;
+      updateMapMarkers();
+      renderList();
+    }
+
+    function updateMapMarkers() {
+      mainMarkersGroup.clearLayers();
+      const bounds = [];
+      const basePath = getBasePath();
+
+      filteredData.forEach(d => {
+        if (d.latitude && d.longitude) {
+          bounds.push([d.latitude, d.longitude]);
+
+          // ROUTING KE DETAIL TANPA FOLDER DEPAN
+          const detailUrl = `${basePath}/${createSlug(d.category)}/${createSlug(d.city || 'lokasi')}/${d.slug || createSlug(d.name)}`;
+          const m = L.marker([d.latitude, d.longitude]);
+          m.bindPopup(`<b>${d.name}</b><br>${d.category}<br>📍 ${d.city}<br><a href="${detailUrl}">Detail</a>`);
+          mainMarkersGroup.addLayer(m);
+        }
+      });
+
+      if (bounds.length > 0) mainMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+    }
+
+    function renderList() {
+      const listEl = document.getElementById("data-list");
+      listEl.innerHTML = "";
+      const basePath = getBasePath();
+
+      if (filteredData.length === 0) {
+        listEl.innerHTML = `<div style="grid-column:1/-1; text-align:center;">Data tidak ditemukan.</div>`;
+        document.getElementById("pagination").style.display = "none";
+        return;
+      }
+
+      const totalPages = Math.ceil(filteredData.length / PER_PAGE);
+      const start = (currentPage - 1) * PER_PAGE;
+      const pageItems = filteredData.slice(start, start + PER_PAGE);
+
+      pageItems.forEach(d => {
+        const detailUrl = `${basePath}/${createSlug(d.category)}/${createSlug(d.city || 'lokasi')}/${d.slug || createSlug(d.name)}`;
+        const isOwner = currentUser && d.ownerId && (d.ownerId === currentUser.uid);
+
+        const defaultRandom = galleryImages.length > 0 ? galleryImages[Math.floor(Math.random() * galleryImages.length)] : "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=600";
+        const displayThumb = (d.images && d.images.length > 0 && d.images[0]) ? d.images[0] : (d.imageUrl || defaultRandom);
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <img src="${displayThumb}" class="card-img" alt="${d.name}">
+          <span class="badge">${d.category}</span>
+          <a href="${detailUrl}" class="card-title">${d.name}</a>
+          <small style="color:var(--text-muted);">📍 ${d.address}, ${d.city}</small>
+          <div style="display:flex; gap:0.4rem; margin-top:0.3rem;">
+            <a href="${detailUrl}" class="btn btn-secondary" style="font-size:0.75rem; flex:1; text-align:center;">Buka Detail →</a>
+            ${isOwner ? `<button class="btn btn-primary" style="font-size:0.75rem;" id="edit-b-${d.id}">Edit</button>` : ''}
+          </div>
+        `;
+        listEl.appendChild(card);
+
+        if (isOwner) {
+          setTimeout(() => {
+            const btn = document.getElementById(`edit-b-${d.id}`);
+            if (btn) btn.onclick = () => openModalForEdit(d);
+          }, 0);
+        }
+      });
+
+      renderPaginationControls(totalPages);
+    }
+
+    function renderPaginationControls(totalPages) {
+      const pContainer = document.getElementById("pagination");
+      const numbersEl = document.getElementById("p-numbers");
+
+      if (totalPages <= 1) { pContainer.style.display = "none"; return; }
+      pContainer.style.display = "flex";
+      numbersEl.innerHTML = "";
+
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement("button");
+        btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+        btn.innerText = i;
+        btn.onclick = () => { currentPage = i; renderList(); };
+        numbersEl.appendChild(btn);
+      }
+
+      document.getElementById("p-first").disabled = currentPage === 1;
+      document.getElementById("p-prev").disabled = currentPage === 1;
+      document.getElementById("p-next").disabled = currentPage === totalPages;
+      document.getElementById("p-last").disabled = currentPage === totalPages;
+
+      document.getElementById("p-first").onclick = () => { currentPage = 1; renderList(); };
+      document.getElementById("p-prev").onclick = () => { if (currentPage > 1) { currentPage--; renderList(); } };
+      document.getElementById("p-next").onclick = () => { if (currentPage < totalPages) { currentPage++; renderList(); } };
+      document.getElementById("p-last").onclick = () => { currentPage = totalPages; renderList(); };
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      currentUser = user;
+      const statusText = document.getElementById("user-status-text");
+      const authWrapper = document.getElementById("auth-buttons-wrapper");
+      const addBtn = document.getElementById("add-data-btn");
+
+      if (user) {
+        statusText.innerText = `Logged in: ${user.email}`;
+        const isAdmin = user.email === 'bandardeterjen@gmail.com';
+
+        authWrapper.innerHTML = `
+          ${isAdmin ? `<a href="./admin.html" class="btn btn-primary">Dashboard Admin</a>` : ''}
+          <button class="btn btn-danger" id="logout-btn">Logout</button>
+        `;
+        addBtn.style.display = "inline-block";
+
+        document.getElementById("logout-btn").onclick = async () => {
+          await signOut(auth);
+          currentUser = null;
+          renderList(); // Bersihkan tombol edit secara total
+        };
+      } else {
+        currentUser = null;
+        statusText.innerText = `Peta & Katalog Usaha`;
+        authWrapper.innerHTML = `<a href="./auth.html" class="btn btn-primary">🔑 Login / Register</a>`;
+        addBtn.style.display = "none";
+      }
+
+      renderList();
+    });
+
+    function openModalForEdit(d) {
+      document.getElementById("modal-title").innerText = "Edit Usaha Milik Anda";
+      document.getElementById("f-id").value = d.id;
+      document.getElementById("f-name").value = d.name;
+      document.getElementById("f-category").value = d.category;
+      document.getElementById("f-province").value = d.province || '';
+      document.getElementById("f-city").value = d.city;
+      document.getElementById("f-address").value = d.address;
+      document.getElementById("f-wa").value = d.whatsapp;
+
+      resetImageInputs(d.images || (d.imageUrl ? [d.imageUrl] : []));
+
+      document.getElementById("add-modal").classList.add("active");
+      setTimeout(() => { initPickerMap(); setPickerLocation(d.latitude, d.longitude); pickerMap.invalidateSize(); }, 200);
+    }
+
+    document.getElementById("add-data-btn").onclick = () => {
+      document.getElementById("modal-title").innerText = "Tambah Usaha Baru (Pending Approved)";
+      document.getElementById("add-form").reset();
+      document.getElementById("f-id").value = "";
+      resetImageInputs([]);
+      document.getElementById("add-modal").classList.add("active");
+      setTimeout(() => { initPickerMap(); if (pickerMap) pickerMap.invalidateSize(); }, 200);
+    };
+
+    document.getElementById("close-modal-btn").onclick = () => document.getElementById("add-modal").classList.remove("active");
+
+    document.getElementById("add-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("f-id").value;
+      const name = document.getElementById("f-name").value;
+
+      const userInputs = imgContainer.querySelectorAll(".f-img-input");
+      let userImages = [];
+      userInputs.forEach(input => {
+        if (input.value.trim()) userImages.push(input.value.trim());
+      });
+
+      if (userImages.length === 0) {
+        const randomFallback = galleryImages.length > 0 ? galleryImages[Math.floor(Math.random() * galleryImages.length)] : "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=600";
+        userImages.push(randomFallback);
+      }
+
+      const payload = {
+        name,
+        slug: createSlug(name),
+        category: document.getElementById("f-category").value,
+        province: document.getElementById("f-province").value,
+        city: document.getElementById("f-city").value,
+        address: document.getElementById("f-address").value,
+        images: userImages,
+        imageUrl: userImages[0],
+        latitude: parseFloat(document.getElementById("f-lat").value),
+        longitude: parseFloat(document.getElementById("f-lng").value),
+        whatsapp: document.getElementById("f-wa").value
+      };
+
+      try {
+        if (id) {
+          await updateDoc(doc(db, "businesses", id), payload);
+          alert("Data usaha berhasil diperbarui!");
+        } else {
+          payload.ownerId = currentUser.uid;
+          payload.status = "pending";
+          payload.createdAt = serverTimestamp();
+          await addDoc(collection(db, "businesses"), payload);
+          alert("Usaha berhasil diajukan! Status PENDING menunggu persetujuan Admin.");
+        }
+
+        document.getElementById("add-modal").classList.remove("active");
+        loadData();
+      } catch (err) { alert("Error: " + err.message); }
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initMainMap();
+      loadData();
+      document.getElementById("search").addEventListener("input", applyFilter);
+    });
+  </script>
+</body>
+</html>
