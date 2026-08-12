@@ -1,27 +1,8 @@
-repositoryv2/
-├── index.html              # Halaman Utama (Peta di atas + List 10 data + Navigasi)
-├── 404.html                # Routing Fallback GitHub Pages
-├── admin.html              # Admin V1 & Legacy
-├── vercel.json             # (Opsional) Tetap disimpan untuk kompatibilitas
-│
-├── auth/
-│   ├── login.html          # Login Owner & Admin
-│   └── register.html       # Registrasi Owner
-│
-├── dashboard/
-│   ├── owner.html          # Dashboard Owner (Kelola Bisnis & Verifikasi)
-│   └── admin.html          # Dashboard Admin (Approve Claims & Verifications)
-│
-├── business/
-│   └── detail.html         # Detail Usaha (SEO + Schema.org + Claim Button)
-│
-├── css/
-│   └── style.css           # CSS Responsive (Layout Peta di atas)
-│
-└── js/
-    ├── firebase-config.js  # Config Firebase
-    ├── business.js         # Business Model & Utilities
-    ├── map.js              # Modul Leaflet Map
-    ├── auth.js             # Autentikasi V2
-    ├── claim.js            # Modul Klaim V2
-    └── verification.js     # Modul Verifikasi V2
+directoryv2/
+├── index.html        # Halaman Utama (Peta + Katalog 12 Data + Modal Form)
+├── auth.html         # Halaman Login & Registrasi Owner (Satu Komponen + Captcha)
+├── admin.html        # Admin Panel (Moderasi User, Listing 12 Data, & Galeri)
+├── detail.html       # Halaman Detail Standalone (Jika tidak menggunakan 404.html)
+├── 404.html          # Dynamic SEO Routing + Open Graph Thumbnail Sharing
+├── about.html        # Halaman Tentang Kami (Header Royal Blue & Footer Orange)
+└── contact.html      # Halaman Kontak Admin
