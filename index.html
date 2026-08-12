@@ -100,6 +100,27 @@
     @media (min-width: 640px) {
       .footer-container { flex-direction: row; justify-content: space-between; text-align: left; }
     }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      z-index: 3000;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      text-align: center;
+      max-width: 90%;
+    }
+    .toast.error { background: #ef4444; }
+    .toast.warning { background: #f59e0b; color: #000; }
+    .toast.success { background: #16a34a; }
   </style>
 </head>
 <body>
@@ -151,6 +172,7 @@
     </div>
   </footer>
 
+  <!-- FORM MODAL TAMBAH/EDIT USAHA -->
   <div class="modal" id="add-modal">
     <div class="modal-content">
       <h2 style="color:var(--primary); margin-bottom:1rem;" id="modal-title">Tambah Usaha Baru</h2>
@@ -171,44 +193,12 @@
         <div class="form-group"><label>Provinsi</label>
           <select id="f-province" required>
             <option value="">-- Pilih Provinsi --</option>
-            <option value="Aceh">Aceh</option>
-            <option value="Bali">Bali</option>
-            <option value="Banten">Banten</option>
-            <option value="Bengkulu">Bengkulu</option>
-            <option value="DI Yogyakarta">DI Yogyakarta</option>
-            <option value="DKI Jakarta">DKI Jakarta</option>
-            <option value="Gorontalo">Gorontalo</option>
-            <option value="Jambi">Jambi</option>
             <option value="Jawa Barat">Jawa Barat</option>
+            <option value="DKI Jakarta">DKI Jakarta</option>
             <option value="Jawa Tengah">Jawa Tengah</option>
             <option value="Jawa Timur">Jawa Timur</option>
-            <option value="Kalimantan Barat">Kalimantan Barat</option>
-            <option value="Kalimantan Selatan">Kalimantan Selatan</option>
-            <option value="Kalimantan Tengah">Kalimantan Tengah</option>
-            <option value="Kalimantan Timur">Kalimantan Timur</option>
-            <option value="Kalimantan Utara">Kalimantan Utara</option>
-            <option value="Kepulauan Bangka Belitung">Kepulauan Bangka Belitung</option>
-            <option value="Kepulauan Riau">Kepulauan Riau</option>
-            <option value="Lampung">Lampung</option>
-            <option value="Maluku">Maluku</option>
-            <option value="Maluku Utara">Maluku Utara</option>
-            <option value="Nusa Tenggara Barat">Nusa Tenggara Barat</option>
-            <option value="Nusa Tenggara Timur">Nusa Tenggara Timur</option>
-            <option value="Papua">Papua</option>
-            <option value="Papua Barat">Papua Barat</option>
-            <option value="Papua Barat Daya">Papua Barat Daya</option>
-            <option value="Papua Pegunungan">Papua Pegunungan</option>
-            <option value="Papua Selatan">Papua Selatan</option>
-            <option value="Papua Tengah">Papua Tengah</option>
-            <option value="Riau">Riau</option>
-            <option value="Sulawesi Barat">Sulawesi Barat</option>
-            <option value="Sulawesi Selatan">Sulawesi Selatan</option>
-            <option value="Sulawesi Tengah">Sulawesi Tengah</option>
-            <option value="Sulawesi Tenggara">Sulawesi Tenggara</option>
-            <option value="Sulawesi Utara">Sulawesi Utara</option>
-            <option value="Sumatera Barat">Sumatera Barat</option>
-            <option value="Sumatera Selatan">Sumatera Selatan</option>
-            <option value="Sumatera Utara">Sumatera Utara</option>
+            <option value="Banten">Banten</option>
+            <option value="Bali">Bali</option>
           </select>
         </div>
 
@@ -249,11 +239,13 @@
     </div>
   </div>
 
+  <div class="toast" id="toast"></div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, getDoc, addDoc, doc, updateDoc, setDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -274,16 +266,26 @@
     let filteredData = [];
     let galleryImages = [];
     let currentPage = 1;
-    const PER_PAGE = 12; // FIXED 12 DATA PER HALAMAN
+    const PER_PAGE = 12;
     let currentUser = null;
+    let isAdminUser = false;
 
     const INDONESIA_BOUNDS = L.latLngBounds(L.latLng(-11.1, 95.0), L.latLng(6.2, 141.0));
 
     function getBasePath() { return window.location.pathname.startsWith('/directoryv2') ? '/directoryv2' : ''; }
     function createSlug(text) { return text.toString().toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, ''); }
 
+    function showToast(msg, type = "info") {
+      const toast = document.getElementById("toast");
+      toast.innerText = msg;
+      toast.className = `toast ${type}`;
+      toast.style.display = "block";
+      setTimeout(() => { toast.style.display = "none"; }, 4000);
+    }
+
     document.getElementById("current-year").innerText = new Date().getFullYear();
 
+    // Dark Mode
     const darkToggle = document.getElementById("dark-mode-toggle");
     if (localStorage.getItem("theme") === "dark") {
       document.body.classList.add("dark-mode");
@@ -380,8 +382,6 @@
       filteredData.forEach(d => {
         if (d.latitude && d.longitude) {
           bounds.push([d.latitude, d.longitude]);
-
-          // ROUTING KE DETAIL TANPA FOLDER DEPAN
           const detailUrl = `${basePath}/${createSlug(d.category)}/${createSlug(d.city || 'lokasi')}/${d.slug || createSlug(d.name)}`;
           const m = L.marker([d.latitude, d.longitude]);
           m.bindPopup(`<b>${d.name}</b><br>${d.category}<br>📍 ${d.city}<br><a href="${detailUrl}">Detail</a>`);
@@ -409,7 +409,9 @@
 
       pageItems.forEach(d => {
         const detailUrl = `${basePath}/${createSlug(d.category)}/${createSlug(d.city || 'lokasi')}/${d.slug || createSlug(d.name)}`;
-        const isOwner = currentUser && d.ownerId && (d.ownerId === currentUser.uid);
+        
+        // ADMIN BISA EDIT SEMUA LISTING, OWNER HANYA BISA EDIT MILIK SENDIRI
+        const canEdit = currentUser && (isAdminUser || (d.ownerId && d.ownerId === currentUser.uid));
 
         const defaultRandom = galleryImages.length > 0 ? galleryImages[Math.floor(Math.random() * galleryImages.length)] : "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=600";
         const displayThumb = (d.images && d.images.length > 0 && d.images[0]) ? d.images[0] : (d.imageUrl || defaultRandom);
@@ -423,12 +425,12 @@
           <small style="color:var(--text-muted);">📍 ${d.address}, ${d.city}</small>
           <div style="display:flex; gap:0.4rem; margin-top:0.3rem;">
             <a href="${detailUrl}" class="btn btn-secondary" style="font-size:0.75rem; flex:1; text-align:center;">Buka Detail →</a>
-            ${isOwner ? `<button class="btn btn-primary" style="font-size:0.75rem;" id="edit-b-${d.id}">Edit</button>` : ''}
+            ${canEdit ? `<button class="btn btn-primary" style="font-size:0.75rem;" id="edit-b-${d.id}">Edit</button>` : ''}
           </div>
         `;
         listEl.appendChild(card);
 
-        if (isOwner) {
+        if (canEdit) {
           setTimeout(() => {
             const btn = document.getElementById(`edit-b-${d.id}`);
             if (btn) btn.onclick = () => openModalForEdit(d);
@@ -474,10 +476,10 @@
 
       if (user) {
         statusText.innerText = `Logged in: ${user.email}`;
-        const isAdmin = user.email === 'bandardeterjen@gmail.com';
+        isAdminUser = (user.email === 'bandardeterjen@gmail.com');
 
         authWrapper.innerHTML = `
-          ${isAdmin ? `<a href="./admin.html" class="btn btn-primary">Dashboard Admin</a>` : ''}
+          ${isAdminUser ? `<a href="./admin.html" class="btn btn-primary">Dashboard Admin</a>` : ''}
           <button class="btn btn-danger" id="logout-btn">Logout</button>
         `;
         addBtn.style.display = "inline-block";
@@ -485,10 +487,12 @@
         document.getElementById("logout-btn").onclick = async () => {
           await signOut(auth);
           currentUser = null;
-          renderList(); // Bersihkan tombol edit secara total
+          isAdminUser = false;
+          renderList();
         };
       } else {
         currentUser = null;
+        isAdminUser = false;
         statusText.innerText = `Peta & Katalog Usaha`;
         authWrapper.innerHTML = `<a href="./auth.html" class="btn btn-primary">🔑 Login / Register</a>`;
         addBtn.style.display = "none";
@@ -498,7 +502,7 @@
     });
 
     function openModalForEdit(d) {
-      document.getElementById("modal-title").innerText = "Edit Usaha Milik Anda";
+      document.getElementById("modal-title").innerText = isAdminUser ? `Edit Usaha: ${d.name} (Admin)` : "Edit Usaha Milik Anda";
       document.getElementById("f-id").value = d.id;
       document.getElementById("f-name").value = d.name;
       document.getElementById("f-category").value = d.category;
@@ -513,7 +517,23 @@
       setTimeout(() => { initPickerMap(); setPickerLocation(d.latitude, d.longitude); pickerMap.invalidateSize(); }, 200);
     }
 
-    document.getElementById("add-data-btn").onclick = () => {
+    // HANDLER TOMBOL TAMBAH USAHA (DENGAN CEK PEMBATASAN 1 LISTING)
+    document.getElementById("add-data-btn").onclick = async () => {
+      if (!currentUser) return;
+
+      // Admin Bebas Tambah Berapa Saja
+      if (!isAdminUser) {
+        // Cek Apakah User/Owner Ini Sudah Memiliki Listing di Firestore
+        const qUserBusinesses = query(collection(db, "businesses"), where("ownerId", "==", currentUser.uid));
+        const userSnap = await getDocs(qUserBusinesses);
+
+        if (!userSnap.empty) {
+          showToast("⚠️ Anda sudah menambahkan 1 listing usaha. Setiap akun Owner saat ini dibatasi maksimal 1 listing usaha. Silakan tunggu proses peninjauan (approval) Admin atau edit listing yang sudah ada.", "warning");
+          return;
+        }
+      }
+
+      // Jika Belum Punya Listing atau Merupakan Admin -> Buka Form Modal
       document.getElementById("modal-title").innerText = "Tambah Usaha Baru (Pending Approved)";
       document.getElementById("add-form").reset();
       document.getElementById("f-id").value = "";
@@ -557,18 +577,18 @@
       try {
         if (id) {
           await updateDoc(doc(db, "businesses", id), payload);
-          alert("Data usaha berhasil diperbarui!");
+          showToast("Data usaha berhasil diperbarui!", "success");
         } else {
           payload.ownerId = currentUser.uid;
-          payload.status = "pending";
+          payload.status = isAdminUser ? "active" : "pending"; // Admin langsung Active, User = Pending
           payload.createdAt = serverTimestamp();
           await addDoc(collection(db, "businesses"), payload);
-          alert("Usaha berhasil diajukan! Status PENDING menunggu persetujuan Admin.");
+          showToast(isAdminUser ? "Usaha berhasil ditambahkan dan langsung aktif!" : "Usaha berhasil diajukan! Status PENDING menunggu persetujuan Admin.", "success");
         }
 
         document.getElementById("add-modal").classList.remove("active");
         loadData();
-      } catch (err) { alert("Error: " + err.message); }
+      } catch (err) { showToast("Error: " + err.message, "error"); }
     };
 
     document.addEventListener("DOMContentLoaded", () => {
