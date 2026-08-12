@@ -39,7 +39,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; transition: background 0.3s, color 0.3s; }
 
-    /* HEADER FLEXWRAP AGAR TIDAK TABRAKAN DI MOBILE */
     header { background: var(--header-bg); color: var(--header-text); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 0.8rem; }
     header h1 a { color: var(--header-text); text-decoration: none; font-size: 1.25rem; font-weight: 700; }
     .header-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
@@ -67,7 +66,6 @@
     .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
     .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* MODAL FORM MODERASI */
     .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center; padding: 1rem; }
     .modal.active { display: flex; }
     .modal-content { background: var(--surface); color: var(--text); border-radius: 8px; width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; }
@@ -75,7 +73,6 @@
     .form-group { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.8rem; }
     .form-group input, .form-group select { padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); width: 100%; }
 
-    /* LAYOUT LATITUDE & LONGITUDE RESPONSIVE MOBILE */
     .coord-container { display: flex; flex-direction: column; gap: 0.8rem; }
     @media (min-width: 640px) {
       .coord-container { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
@@ -83,7 +80,6 @@
 
     #picker-map { width: 100%; height: 200px; border-radius: 6px; border: 1px solid var(--border); margin-top: 0.3rem; }
 
-    /* FOOTER STYLING */
     footer { background: var(--footer-bg); color: var(--footer-text); padding: 1.5rem 1rem; margin-top: auto; border-top: 1px solid var(--border); }
     .footer-container { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 1rem; align-items: center; text-align: center; }
     .footer-links { display: flex; gap: 1.2rem; flex-wrap: wrap; justify-content: center; }
@@ -118,7 +114,6 @@
     <div class="controls">
       <input type="text" id="search" placeholder="Cari laundry, cuci sepatu, kota...">
       <button id="add-data-btn" class="btn btn-primary" style="display:none;">+ Tambah Usaha</button>
-      <button id="seed-btn" class="btn btn-secondary" style="display:none;">🌱 Seed 15 Dummy</button>
     </div>
 
     <div id="data-list" class="grid">
@@ -137,8 +132,8 @@
   <footer>
     <div class="footer-container">
       <div class="footer-links">
-        <a href="#" id="link-about">Tentang Kami</a>
-        <a href="#" id="link-contact">Kontak</a>
+        <a href="./about.html">Tentang Kami</a>
+        <a href="./contact.html">Kontak</a>
         <a href="./auth.html">Login / Registrasi</a>
       </div>
       <div class="copyright">
@@ -168,55 +163,22 @@
         <div class="form-group"><label>Provinsi</label>
           <select id="f-province" required>
             <option value="">-- Pilih Provinsi --</option>
-            <option value="Aceh">Aceh</option>
-            <option value="Bali">Bali</option>
-            <option value="Banten">Banten</option>
-            <option value="Bengkulu">Bengkulu</option>
-            <option value="DI Yogyakarta">DI Yogyakarta</option>
-            <option value="DKI Jakarta">DKI Jakarta</option>
-            <option value="Gorontalo">Gorontalo</option>
-            <option value="Jambi">Jambi</option>
             <option value="Jawa Barat">Jawa Barat</option>
+            <option value="DKI Jakarta">DKI Jakarta</option>
             <option value="Jawa Tengah">Jawa Tengah</option>
             <option value="Jawa Timur">Jawa Timur</option>
-            <option value="Kalimantan Barat">Kalimantan Barat</option>
-            <option value="Kalimantan Selatan">Kalimantan Selatan</option>
-            <option value="Kalimantan Tengah">Kalimantan Tengah</option>
-            <option value="Kalimantan Timur">Kalimantan Timur</option>
-            <option value="Kalimantan Utara">Kalimantan Utara</option>
-            <option value="Kepulauan Bangka Belitung">Kepulauan Bangka Belitung</option>
-            <option value="Kepulauan Riau">Kepulauan Riau</option>
-            <option value="Lampung">Lampung</option>
-            <option value="Maluku">Maluku</option>
-            <option value="Maluku Utara">Maluku Utara</option>
-            <option value="Nusa Tenggara Barat">Nusa Tenggara Barat</option>
-            <option value="Nusa Tenggara Timur">Nusa Tenggara Timur</option>
-            <option value="Papua">Papua</option>
-            <option value="Papua Barat">Papua Barat</option>
-            <option value="Papua Barat Daya">Papua Barat Daya</option>
-            <option value="Papua Pegunungan">Papua Pegunungan</option>
-            <option value="Papua Selatan">Papua Selatan</option>
-            <option value="Papua Tengah">Papua Tengah</option>
-            <option value="Riau">Riau</option>
-            <option value="Sulawesi Barat">Sulawesi Barat</option>
-            <option value="Sulawesi Selatan">Sulawesi Selatan</option>
-            <option value="Sulawesi Tengah">Sulawesi Tengah</option>
-            <option value="Sulawesi Tenggara">Sulawesi Tenggara</option>
-            <option value="Sulawesi Utara">Sulawesi Utara</option>
-            <option value="Sumatera Barat">Sumatera Barat</option>
-            <option value="Sumatera Selatan">Sumatera Selatan</option>
-            <option value="Sumatera Utara">Sumatera Utara</option>
+            <option value="Banten">Banten</option>
+            <option value="Bali">Bali</option>
           </select>
         </div>
 
         <div class="form-group"><label>Kota / Kabupaten</label><input type="text" id="f-city" required placeholder="Ketik nama kota (misal: Bogor)"></div>
         <div class="form-group"><label>Alamat Jalan</label><input type="text" id="f-address" required placeholder="Jl. Raya No. 12"></div>
 
-        <!-- FORM GAMBAR DINAMIS (MAKSIMAL 3 KOLOM) -->
         <div class="form-group">
           <label>URL Gambar/Foto Usaha (Opsional, Maks 3 Image)</label>
           <div id="image-inputs-container" style="display:flex; flex-direction:column; gap:0.4rem;">
-            <input type="url" class="f-img-input" placeholder="URL Gambar 1 (Utama/Thumbnail)" required>
+            <input type="url" class="f-img-input" placeholder="URL Gambar 1 (Utama/Thumbnail)">
           </div>
           <button type="button" class="btn btn-secondary" id="add-img-col-btn" style="margin-top:0.4rem; font-size:0.75rem; width:fit-content;">+ Tambah Kolom Gambar</button>
         </div>
@@ -226,7 +188,6 @@
           <div id="picker-map"></div>
         </div>
 
-        <!-- REFORMAT LATITUDE & LONGITUDE RESPONSIVE -->
         <div class="coord-container">
           <div class="form-group">
             <label>Latitude</label>
@@ -275,6 +236,8 @@
     let filteredData = [];
     let galleryImages = [];
     let currentPage = 1;
+    
+    // TAMPILAN FIXED 12 DATA PER HALAMAN
     const PER_PAGE = 12;
     let currentUser = null;
 
@@ -298,10 +261,6 @@
       darkToggle.innerText = isDark ? "☀️ Mode Terang" : "🌙 Mode Gelap";
     };
 
-    document.getElementById("link-about").onclick = (e) => { e.preventDefault(); alert("Laundry Directory V2.0 adalah katalog usaha laundry berbasis peta."); };
-    document.getElementById("link-contact").onclick = (e) => { e.preventDefault(); alert("Kontak Admin: bandardeterjen@gmail.com"); };
-
-    // Dynamic Image Input Fields Handler (Max 3)
     const imgContainer = document.getElementById("image-inputs-container");
     const addImgBtn = document.getElementById("add-img-col-btn");
 
@@ -365,7 +324,6 @@
 
     async function loadData() {
       try {
-        // Fetch Admin Gallery
         const gSnap = await getDocs(collection(db, "adminGallery"));
         galleryImages = [];
         gSnap.forEach(d => galleryImages.push(d.data().url));
@@ -396,7 +354,7 @@
           bounds.push([d.latitude, d.longitude]);
           const detailUrl = `${basePath}/${createSlug(d.category)}/${createSlug(d.city || 'lokasi')}/${d.slug || createSlug(d.name)}`;
           const m = L.marker([d.latitude, d.longitude]);
-          m.bindPopup(`<b>${d.name}</b><br>${d.category}<br><a href="${detailUrl}">Detail</a>`);
+          m.bindPopup(`<b>${d.name}</b><br>${d.category}<br>📍 ${d.city}<br><a href="${detailUrl}">Detail</a>`);
           mainMarkersGroup.addLayer(m);
         }
       });
@@ -421,9 +379,10 @@
 
       pageItems.forEach(d => {
         const detailUrl = `${basePath}/${createSlug(d.category)}/${createSlug(d.city || 'lokasi')}/${d.slug || createSlug(d.name)}`;
-        const isOwner = currentUser && d.ownerId === currentUser.uid;
+        
+        // PASTI HANYA MUNCUL JIKA USER BENAR-BENAR SEDANG LOGIN & MERUPAKAN OWNER PEMILIK BISNIS INI
+        const isOwner = currentUser && d.ownerId && (d.ownerId === currentUser.uid);
 
-        // Display Thumb
         const defaultRandom = galleryImages.length > 0 ? galleryImages[Math.floor(Math.random() * galleryImages.length)] : "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=600";
         const displayThumb = (d.images && d.images.length > 0 && d.images[0]) ? d.images[0] : (d.imageUrl || defaultRandom);
 
@@ -442,7 +401,10 @@
         listEl.appendChild(card);
 
         if (isOwner) {
-          setTimeout(() => { document.getElementById(`edit-b-${d.id}`).onclick = () => openModalForEdit(d); }, 0);
+          setTimeout(() => { 
+            const editBtn = document.getElementById(`edit-b-${d.id}`);
+            if (editBtn) editBtn.onclick = () => openModalForEdit(d); 
+          }, 0);
         }
       });
 
@@ -476,6 +438,7 @@
       document.getElementById("p-last").onclick = () => { currentPage = totalPages; renderList(); };
     }
 
+    // LISTENER AUTHENTICATION DEKLARATIF MENCEGAH TOMBOL EDIT BOCOR SAAT LOGOUT
     onAuthStateChanged(auth, async (user) => {
       currentUser = user;
       const statusText = document.getElementById("user-status-text");
@@ -492,12 +455,19 @@
         `;
         addBtn.style.display = "inline-block";
 
-        document.getElementById("logout-btn").onclick = () => signOut(auth);
+        document.getElementById("logout-btn").onclick = async () => {
+          await signOut(auth);
+          currentUser = null;
+          renderList(); // RE-RENDER KATALOG UNTUK MENGHAPUS SELURUH TOMBOL EDIT
+        };
       } else {
+        currentUser = null;
         statusText.innerText = `Peta & Katalog Usaha`;
         authWrapper.innerHTML = `<a href="./auth.html" class="btn btn-primary">🔑 Login / Register</a>`;
         addBtn.style.display = "none";
       }
+
+      renderList(); // RE-RENDER SETIAP KALI AUTH STATE BERUBAH
     });
 
     function openModalForEdit(d) {
@@ -533,14 +503,12 @@
       const id = document.getElementById("f-id").value;
       const name = document.getElementById("f-name").value;
 
-      // Kumpulkan URL Gambar dari Kolom Input
       const userInputs = imgContainer.querySelectorAll(".f-img-input");
       let userImages = [];
       userInputs.forEach(input => {
         if (input.value.trim()) userImages.push(input.value.trim());
       });
 
-      // Fallback Gambar Random Galeri
       if (userImages.length === 0) {
         const randomFallback = galleryImages.length > 0 ? galleryImages[Math.floor(Math.random() * galleryImages.length)] : "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=600";
         userImages.push(randomFallback);
