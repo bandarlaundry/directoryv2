@@ -4,24 +4,34 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memuat Detail Usaha... — Laundry Directory V2.0</title>
-  <meta id="meta-desc" name="description" content="Detail usaha laundry dan jasa kebersihan.">
+  <meta id="meta-desc" name="description" content="Informasi detail layanan laundry dan cleaning service.">
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    :root { --primary: #0284c7; --bg: #f8fafc; --text: #0f172a; --border: #e2e8f0; }
+    :root { --header-bg: #1e3a8a; --header-text: #ffffff; --footer-bg: #f97316; --footer-text: #000000; --bg: #ffffff; --text: #000000; --border: #e5e7eb; --primary: #0284c7; }
+    body.dark-mode { --header-bg: #0f172a; --footer-bg: #c2410c; --footer-text: #ffffff; --bg: #0f172a; --text: #f8fafc; --border: #334155; }
+    
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-    body { background: var(--bg); color: var(--text); min-height: 100vh; }
-    header { background: white; padding: 1rem; border-bottom: 1px solid var(--border); }
-    header h1 a { color: var(--primary); text-decoration: none; font-size: 1.2rem; }
-    .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
-    .card { background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 1rem; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    
+    header { background: var(--header-bg); color: var(--header-text); padding: 1rem; }
+    header h1 a { color: var(--header-text); text-decoration: none; font-size: 1.2rem; }
+    
+    .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; flex: 1; width: 100%; }
+    .card { background: var(--bg); border: 1px solid var(--border); padding: 1.5rem; border-radius: 8px; display: flex; flex-direction: column; gap: 1rem; }
     .badge { background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; width: fit-content; }
-    .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
-    .btn { padding: 0.7rem; border-radius: 6px; border: none; text-align: center; text-decoration: none; font-weight: 600; font-size: 0.85rem; }
+    
+    /* HANYA ADA 2 TOMBOL (WA & PETUNJUK ARAH) */
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem; }
+    .btn { padding: 0.8rem; border-radius: 6px; border: none; text-align: center; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
     .btn-wa { background: #16a34a; color: white; }
-    .btn-sec { background: #e2e8f0; color: var(--text); }
     .btn-pri { background: var(--primary); color: white; }
+    
     #detail-map { height: 260px; width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.5rem; }
+    .gallery-grid img { width: 100%; height: 140px; object-fit: cover; border-radius: 6px; }
+
+    footer { background: var(--footer-bg); color: var(--footer-text); padding: 1.5rem 1rem; margin-top: auto; }
   </style>
   <script id="json-ld" type="application/ld+json"></script>
 </head>
@@ -36,6 +46,12 @@
       <div style="text-align: center; padding: 2rem; color: #64748b;">Memuat informasi usaha...</div>
     </article>
   </main>
+
+  <footer>
+    <div style="text-align: center; font-size: 0.85rem;">
+      &copy; <span id="current-year"></span> Laundry Directory V2.0. Hak Cipta Dilindungi.
+    </div>
+  </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
@@ -54,29 +70,19 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    document.getElementById("current-year").innerText = new Date().getFullYear();
+    if (localStorage.getItem("theme") === "dark") document.body.classList.add("dark-mode");
+
     document.addEventListener("DOMContentLoaded", async () => {
       const parts = window.location.pathname.split('/').filter(Boolean);
       const slug = parts[parts.length - 1];
 
-      if (!slug || slug === 'directoryv2' || slug === '404.html') {
-        showError("URL tidak valid.");
-        return;
-      }
-
       try {
         const q = query(collection(db, "businesses"), where("slug", "==", slug));
         const snap = await getDocs(q);
-        
-        if (snap.empty) {
-          showError("Usaha tidak ditemukan.");
-          return;
-        }
-
-        const b = snap.docs[0].data();
-        renderDetail(b);
-      } catch (err) {
-        showError("Gagal memuat data dari database.");
-      }
+        if (snap.empty) { showError("Usaha tidak ditemukan."); return; }
+        renderDetail(snap.docs[0].data());
+      } catch (err) { showError("Gagal memuat data dari database."); }
     });
 
     function renderDetail(b) {
@@ -85,40 +91,46 @@
       const waUrl = waNum ? `https://wa.me/${waNum}?text=${encodeURIComponent("Halo, saya menemukan usaha Anda via Laundry Directory.")}` : '#';
       const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${b.latitude},${b.longitude}`;
 
+      // Render Galeri 1-3 Gambar
+      const imgs = (b.images && b.images.length > 0) ? b.images : [b.imageUrl || 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=600'];
+      const galleryHtml = `<div class="gallery-grid">${imgs.map(img => `<img src="${img}" alt="${b.name}">`).join('')}</div>`;
+
       document.getElementById("content").innerHTML = `
+        ${galleryHtml}
         <span class="badge">${b.category}</span>
         <h1 style="color:var(--primary);">${b.name} ${b.city || ''}</h1>
-        <p style="color:#475569;">${b.description || 'Layanan profesional, cepat, dan terpercaya.'}</p>
+        <p style="color:var(--text-muted);">${b.description || 'Layanan profesional, cepat, dan terpercaya.'}</p>
         <hr style="border:0; border-top:1px solid var(--border);">
         <div style="font-size:0.9rem; display:flex; flex-direction:column; gap:6px;">
-          <div><strong>📍 Alamat:</strong> ${b.address}, ${b.city}</div>
-          <div><strong>🕒 Jam Operasional:</strong> ${b.openingHours || '-'}</div>
-          <div><strong>📞 WhatsApp:</strong> ${b.whatsapp || '-'}</div>
+          <div><strong>📍 Alamat:</strong> ${b.address}, ${b.city}, ${b.province || ''}</div>
+          <div><strong>🕒 Jam Operasional:</strong> ${b.openingHours || '08:00 - 20:00'}</div>
+          <div><strong>💬 WhatsApp:</strong> ${b.whatsapp || '-'}</div>
         </div>
+
+        <!-- HANYA TOMBOL WA DAN PETUNJUK ARAH -->
         <div class="actions">
           <a href="${waUrl}" target="_blank" class="btn btn-wa">💬 WhatsApp</a>
-          <a href="tel:${b.phone || b.whatsapp || ''}" class="btn btn-sec">📞 Telepon</a>
           <a href="${mapsUrl}" target="_blank" class="btn btn-pri">🧭 Petunjuk Arah</a>
         </div>
+
         <h3 style="margin-top:1rem;">Lokasi Peta</h3>
         <div id="detail-map"></div>
       `;
 
-      // SEO Metadata
       document.title = `${b.name} ${b.city} — ${b.category} | Laundry Directory V2.0`;
-      document.getElementById("meta-desc").setAttribute("content", `${b.name} melayani ${b.category} di ${b.city}. Lihat nomor WhatsApp, alamat, dan peta.`);
+      document.getElementById("meta-desc").setAttribute("content", `${b.name} melayani ${b.category} di ${b.city}. Lihat nomor WhatsApp, alamat, dan lokasi peta.`);
 
-      // Schema.org LocalBusiness
+      // Schema.org LocalBusiness dengan Image Pertama sebagai SEO Thumbnail
       document.getElementById("json-ld").textContent = JSON.stringify({
         "@context": "https://schema.org",
         "@type": "LocalBusiness",
         "name": b.name,
+        "image": imgs[0],
         "telephone": b.whatsapp,
-        "address": { "@type": "PostalAddress", "streetAddress": b.address, "addressLocality": b.city },
+        "address": { "@type": "PostalAddress", "streetAddress": b.address, "addressLocality": b.city, "addressRegion": b.province },
         "geo": { "@type": "GeoCoordinates", "latitude": b.latitude, "longitude": b.longitude }
       });
 
-      // Render Leaflet Map
       if (b.latitude && b.longitude) {
         const map = L.map('detail-map').setView([b.latitude, b.longitude], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
