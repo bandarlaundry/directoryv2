@@ -4,31 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <!-- DYNAMIC DEFAULT SEO META TAGS -->
   <title id="seo-title">Memuat Detail Usaha... — Laundry Directory V2.0</title>
   <meta id="seo-desc" name="description" content="Lihat alamat lengkap, nomor WhatsApp, lokasi peta, dan layanan usaha kebersihan.">
-  <meta id="seo-robots" name="robots" content="index, follow">
   <link id="seo-canonical" rel="canonical" href="" />
 
-  <!-- DYNAMIC OPEN GRAPH META FOR SOCIAL SHARING (WHATSAPP, FACEBOOK, TELEGRAM) -->
   <meta property="og:type" content="business.business" />
   <meta property="og:site_name" content="Laundry Directory V2.0" />
   <meta id="og-title" property="og:title" content="Memuat Detail Usaha..." />
   <meta id="og-desc" property="og:description" content="Informasi detail layanan laundry dan kebersihan." />
   <meta id="og-url" property="og:url" content="" />
-  <!-- THUMBNAIL OG:IMAGE DINAMIS UNTUK SHARING MEDIA SOSIAL -->
   <meta id="og-image" property="og:image" content="https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=1200&auto=format&fit=crop&q=80" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:locale" content="id_ID" />
 
-  <!-- TWITTER CARDS -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta id="tw-title" name="twitter:title" content="Memuat Detail Usaha..." />
-  <meta id="tw-desc" name="twitter:description" content="Informasi detail layanan laundry dan kebersihan." />
-  <meta id="tw-image" name="twitter:image" content="https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=1200&auto=format&fit=crop&q=80" />
-
-  <!-- Leaflet CSS & App Style -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root { --header-bg: #1e3a8a; --header-text: #ffffff; --footer-bg: #f97316; --footer-text: #000000; --bg: #ffffff; --text: #000000; --border: #e5e7eb; --primary: #0284c7; }
@@ -56,7 +42,6 @@
     footer { background: var(--footer-bg); color: var(--footer-text); padding: 1.5rem 1rem; margin-top: auto; }
   </style>
 
-  <!-- DYNAMIC SCHEMA.ORG LOCALBUSINESS SCRIPT CONTAINER -->
   <script id="json-ld-schema" type="application/ld+json"></script>
 </head>
 <body>
@@ -149,35 +134,24 @@
       }
     }
 
-    // FUNGSI DINAMIS MEMASUKKAN METADATA SEO, OPEN GRAPH OG:IMAGE, CANONICAL & SCHEMA.ORG
     function injectSEOMetadata(b) {
       const currentUrl = window.location.href;
-      
-      // Ambil Thumbnail Pertama Usaha Sebagai OG:IMAGE
       const imgs = (b.images && b.images.length > 0) ? b.images : [b.imageUrl || 'https://images.unsplash.com/photo-1545173168-9f1947eebb7f?w=1200'];
       const thumbUrl = imgs[0];
 
       const pageTitle = `${b.name} ${b.city} — ${b.category} | Laundry Directory V2.0`;
-      const pageDesc = `${b.name} di ${b.city}, ${b.province || ''} melayani ${b.category}. Alamat: ${b.address}. Hubungi WhatsApp dan lihat lokasi peta interaktif.`;
+      const pageDesc = `${b.name} di ${b.city}, ${b.province || ''} melayani ${b.category}. Alamat: ${b.address}. Hubungi WhatsApp dan lihat lokasi peta.`;
 
-      // Update Standard SEO Meta
       document.title = pageTitle;
       document.getElementById("seo-title").innerText = pageTitle;
       document.getElementById("seo-desc").setAttribute("content", pageDesc);
       document.getElementById("seo-canonical").setAttribute("href", currentUrl);
 
-      // Update Open Graph (WhatsApp, Facebook, Telegram Sharing)
       document.getElementById("og-title").setAttribute("content", pageTitle);
       document.getElementById("og-desc").setAttribute("content", pageDesc);
       document.getElementById("og-url").setAttribute("content", currentUrl);
-      document.getElementById("og-image").setAttribute("content", thumbUrl); // THUMBNAIL UTAMA
+      document.getElementById("og-image").setAttribute("content", thumbUrl);
 
-      // Update Twitter Cards
-      document.getElementById("tw-title").setAttribute("content", pageTitle);
-      document.getElementById("tw-desc").setAttribute("content", pageDesc);
-      document.getElementById("tw-image").setAttribute("content", thumbUrl);
-
-      // Update Schema.org Structured Data
       const schemaData = {
         "@context": "https://schema.org",
         "@type": "LocalBusiness",
@@ -189,15 +163,13 @@
           "@type": "PostalAddress",
           "streetAddress": b.address,
           "addressLocality": b.city,
-          "addressRegion": b.province || "Indonesia",
-          "addressCountry": "ID"
+          "addressRegion": b.province || "Indonesia"
         },
         "geo": {
           "@type": "GeoCoordinates",
           "latitude": b.latitude,
           "longitude": b.longitude
-        },
-        "openingHours": b.openingHours || "Mo-Su 08:00-20:00"
+        }
       };
 
       document.getElementById("json-ld-schema").textContent = JSON.stringify(schemaData);
