@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kontak Kami — Laundry Directory V2.0</title>
+  <style>
+    :root { --header-bg: #1e3a8a; --header-text: #ffffff; --footer-bg: #f97316; --footer-text: #000000; --bg: #ffffff; --text: #000000; --border: #e5e7eb; --primary: #0284c7; }
+    body.dark-mode { --header-bg: #0f172a; --footer-bg: #c2410c; --footer-text: #ffffff; --bg: #0f172a; --text: #f8fafc; --border: #334155; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    
+    header { background: var(--header-bg); color: var(--header-text); padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+    header h1 a { color: var(--header-text); text-decoration: none; font-size: 1.25rem; font-weight: 700; }
+    .btn { padding: 0.5rem 0.9rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 0.85rem; text-decoration: none; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-dark { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); }
+
+    .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; flex: 1; width: 100%; }
+    .card { background: var(--bg); border: 1px solid var(--border); padding: 2rem; border-radius: 8px; display: flex; flex-direction: column; gap: 1rem; line-height: 1.6; }
+    .contact-item { padding: 1rem; background: rgba(0,0,0,0.03); border-radius: 6px; border: 1px solid var(--border); }
+
+    footer { background: var(--footer-bg); color: var(--footer-text); padding: 1.5rem 1rem; margin-top: auto; border-top: 1px solid var(--border); }
+    .footer-container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 1rem; align-items: center; text-align: center; }
+    @media (min-width: 640px) { .footer-container { flex-direction: row; justify-content: space-between; } }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1><a href="./">Laundry Directory V2.0</a></h1>
+    <div style="display: flex; gap: 0.5rem;">
+      <button class="btn btn-dark" id="dark-mode-toggle">🌙 Mode Gelap</button>
+      <a href="./" class="btn btn-primary">← Ke Utama</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <article class="card">
+      <h1 style="color:var(--primary);">Hubungi Kami</h1>
+      <p>Jika Anda memiliki pertanyaan mengenai pendaftaran usaha, klaim lokasi, verifikasi, atau bantuan teknis lainnya, silakan hubungi tim kami melalui saluran resmi di bawah ini:</p>
+
+      <div class="contact-item">
+        <strong>📧 Email Resmi Admin:</strong>
+        <p>bandardeterjen@gmail.com</p>
+      </div>
+
+      <div class="contact-item">
+        <strong>💬 WhatsApp Customer Support:</strong>
+        <p>+62 857-1234-5678</p>
+      </div>
+
+      <div class="contact-item">
+        <strong>📍 Alamat Kantor Operasional:</strong>
+        <p>Cileungsi, Kabupaten Bogor, Jawa Barat, Indonesia</p>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="footer-container">
+      <div>&copy; <span id="current-year"></span> Laundry Directory V2.0. Hak Cipta Dilindungi.</div>
+      <div><a href="./about.html" style="color:var(--footer-text); text-decoration:none; font-weight:bold;">Tentang Kami</a></div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById("current-year").innerText = new Date().getFullYear();
+    const darkToggle = document.getElementById("dark-mode-toggle");
+    if (localStorage.getItem("theme") === "dark") { document.body.classList.add("dark-mode"); darkToggle.innerText = "☀️ Mode Terang"; }
+    darkToggle.onclick = () => {
+      document.body.classList.toggle("dark-mode");
+      const isDark = document.body.classList.contains("dark-mode");
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+      darkToggle.innerText = isDark ? "☀️ Mode Terang" : "🌙 Mode Gelap";
+    };
+  </script>
+</body>
+</html>
